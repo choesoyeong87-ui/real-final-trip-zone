@@ -1,50 +1,122 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
-import { myBookingRows, myBookingSummaries } from "../../data/siteData";
+import { lodgings, myBookingRows } from "../../data/siteData";
+
+const STATUS_LABELS = {
+  CONFIRMED: "확정",
+  PENDING: "대기",
+  COMPLETED: "숙박 완료",
+};
+
+const lodgingMap = Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging]));
 
 export default function MyBookingsPage() {
+  const [tab, setTab] = useState("upcoming");
+  const upcomingCount = myBookingRows.filter((item) => item.status !== "COMPLETED").length;
+  const completedCount = myBookingRows.filter((item) => item.status === "COMPLETED").length;
+
+  const filteredRows = myBookingRows.filter((item) => {
+    if (tab === "upcoming") return item.status !== "COMPLETED";
+    if (tab === "completed") return item.status === "COMPLETED";
+    return true;
+  });
+
   return (
-    <MyPageLayout eyebrow="예약" title="내 예약" description="다가오는 예약과 지난 숙소 기록을 한 번에 확인합니다.">
-        <div className="summary-grid">
-          {myBookingSummaries.map((item) => (
-            <div key={item.label} className={`summary-card tone-${item.tone}`}>
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-            </div>
-          ))}
+    <MyPageLayout>
+      <section className="my-list-sheet booking-sheet booking-sheet-v2">
+        <div className="mypage-section-top">
+          <strong>예약 내역</strong>
         </div>
-        <div className="booking-list">
-          {myBookingRows.map((item) => (
-            <article key={`${item.name}-${item.stay}`} className="booking-list-item">
-              <div className="booking-list-copy">
-                <strong>{item.name}</strong>
-                <p>{item.stay}</p>
+        <div className="mypage-guide-banner">
+          <span>예약 확인, 일정 체크, 상세 이동을 한 화면에서 정리했습니다.</span>
+        </div>
+        <div className="booking-glance-strip">
+          <div className="booking-glance-card is-mint">
+            <span>예약중</span>
+            <strong>{upcomingCount}건</strong>
+          </div>
+          <div className="booking-glance-card">
+            <span>이용 완료</span>
+            <strong>{completedCount}건</strong>
+          </div>
+          <div className="booking-glance-card is-soft">
+            <span>정렬</span>
+            <strong>최신 일정순</strong>
+          </div>
+        </div>
+        <div className="payment-sheet-links booking-controls">
+          <div className="booking-segmented-tabs" role="tablist" aria-label="예약 상태">
+            <button
+              type="button"
+              className={`booking-segmented-tab${tab === "upcoming" ? " is-active" : ""}`}
+              onClick={() => setTab("upcoming")}
+            >
+              예약중
+            </button>
+            <button
+              type="button"
+              className={`booking-segmented-tab${tab === "completed" ? " is-active" : ""}`}
+              onClick={() => setTab("completed")}
+            >
+              이용 완료
+            </button>
+          </div>
+        </div>
+        <div className="mypage-subsection-head">
+          <strong>{tab === "upcoming" ? "예정된 여행" : "이용완료 및 예약취소"}</strong>
+          <span>{tab === "upcoming" ? `예약중 ${upcomingCount}건` : `이용 완료 ${completedCount}건`}</span>
+        </div>
+        <div className="booking-list-rows booking-list-rows--flush">
+          {filteredRows.map((item) => (
+            <article key={`${item.name}-${item.stay}`} className="booking-list-row">
+              <div className="booking-list-media">
+                <img src={lodgingMap[item.lodgingId]?.image} alt={item.name} />
               </div>
-              <div className="booking-list-meta">
-                <span className={`table-code code-${item.status.toLowerCase()}`}>
-                  {item.status === "CONFIRMED" ? "확정" : item.status === "PENDING" ? "대기" : "숙박 완료"}
-                </span>
-                <span className="price-tag">{item.price}</span>
-                {item.status === "COMPLETED" ? (
-                  <Link className="text-link" to={`/lodgings/${item.lodgingId}#reviews`}>
-                    후기 작성
+              <div className="booking-list-main">
+                <div className="booking-list-copy">
+                  <div className="payment-row-topline">
+                    <span>{tab === "completed" ? "이용 일정" : "예약 일정"} {item.stay}</span>
+                    <span>{lodgingMap[item.lodgingId]?.region} · {lodgingMap[item.lodgingId]?.district}</span>
+                  </div>
+                  <strong>{item.name}</strong>
+                  <p>{lodgingMap[item.lodgingId]?.type} · {lodgingMap[item.lodgingId]?.room}</p>
+                </div>
+              </div>
+              <div className="booking-list-side">
+                <div className="booking-list-side-topline">
+                  <span className={`table-code code-${item.status.toLowerCase()}`}>
+                    {STATUS_LABELS[item.status]}
+                  </span>
+                  <span>{`${item.lodgingId}-${item.stay.replace(/\./g, "").replace(/\s/g, "")}`}</span>
+                </div>
+                <strong className="booking-list-amount">{item.price}</strong>
+                <div className="booking-list-links">
+                  <Link className="coupon-action-button booking-action-button" to={`/my/bookings/${item.lodgingId}-${item.stay.replace(/\./g, "").replace(/\s/g, "")}`}>
+                    예약 상세
                   </Link>
-                ) : null}
+                  {tab === "completed" ? (
+                    <Link className="text-link" to={`/lodgings/${item.lodgingId}#reviews`}>
+                      후기 작성
+                    </Link>
+                  ) : null}
+                </div>
               </div>
             </article>
           ))}
+          {!filteredRows.length ? (
+            <div className="my-empty-panel">
+              <strong>{tab === "upcoming" ? "예정된 여행이 없습니다." : "이용완료 내역이 없습니다."}</strong>
+              <p>{tab === "upcoming" ? "지금 새로운 예약을 진행해보세요." : "숙박 완료 후 여기에 이용 기록이 표시됩니다."}</p>
+              {tab === "upcoming" ? (
+                <Link className="primary-button my-empty-button" to="/lodgings">
+                  여행지 찾아보기
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
         </div>
-        <div className="booking-actions">
-          <Link className="secondary-button" to="/my">
-            마이페이지
-          </Link>
-          <Link className="secondary-button" to="/lodgings">
-            숙소 더 보기
-          </Link>
-          <Link className="secondary-button" to="/my/inquiries">
-            문의 내역 보기
-          </Link>
-        </div>
+      </section>
     </MyPageLayout>
   );
 }

@@ -1253,12 +1253,6 @@ export default function LodgingListPage() {
                           </span>
                         </div>
                         <p className="lodging-compact-room">{lodging.room}</p>
-                        <p className="lodging-compact-address">{lodging.type} · {lodging.intro}</p>
-                        <div className="lodging-compact-tags">
-                          {lodging.highlights.slice(0, 2).map((item) => (
-                            <span key={item} className="lodging-compact-tag">{item}</span>
-                          ))}
-                        </div>
                         <div className="lodging-compact-bottom">
                           <div className="lodging-compact-price-stack">
                             {priceMeta.discount ? (

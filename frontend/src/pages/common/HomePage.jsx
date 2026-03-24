@@ -44,14 +44,15 @@ function matchesKeyword(item, keyword) {
   return fields.some((field) => field.includes(term)) || initialFields.some((field) => field.includes(term));
 }
 
-function computePosition(anchorRect, wantedWidth, wantedHeight) {
+function computePosition(anchorRect, wantedWidth, wantedHeight, options = {}) {
+  const { preferBelow = false } = options;
   const margin = 12;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const left = clamp(anchorRect.left, margin, viewportWidth - wantedWidth - margin);
   let top = anchorRect.bottom + 8;
 
-  if (top + wantedHeight > viewportHeight - margin) {
+  if (!preferBelow && top + wantedHeight > viewportHeight - margin) {
     top = clamp(anchorRect.top - wantedHeight - 8, margin, viewportHeight - wantedHeight - margin);
   }
 
@@ -180,7 +181,7 @@ function SuggestionsPanel({ open, anchorRef, panelRef, recentSearches, filteredS
 
     const update = () => {
       const rect = anchorRef.current.getBoundingClientRect();
-      const wantedWidth = Math.max(rect.width, 520);
+      const wantedWidth = clamp(Math.max(rect.width, 420), 420, 520);
       const next = computePosition(rect, wantedWidth, 340);
       setPosition({
         left: next.left,
@@ -212,24 +213,6 @@ function SuggestionsPanel({ open, anchorRef, panelRef, recentSearches, filteredS
         maxHeight: `${position.maxHeight}px`,
       }}
     >
-      {recentSearches.length ? (
-        <div className="search-suggestion-group">
-          <span className="search-chip-label">최근 검색</span>
-          <div className="search-suggestion-list">
-            {recentSearches.map((item) => (
-              <button
-                key={item}
-                type="button"
-                className="search-suggestion-item recent"
-                onClick={() => onPickRecent(item)}
-              >
-                <strong>{item}</strong>
-                <span>최근 확인한 검색어</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
       <div className="search-suggestion-group">
         <span className="search-chip-label">연관 검색</span>
         <div className="search-suggestion-list search-suggestion-list-stacked">
@@ -336,8 +319,8 @@ function DateRangePopover({ open, anchorRef, panelRef, visibleMonth, setVisibleM
     const update = () => {
       const rect = anchorRef.current.getBoundingClientRect();
       const isMobile = window.innerWidth <= 960;
-      const wantedWidth = isMobile ? Math.min(window.innerWidth - 24, 420) : Math.min(window.innerWidth - 24, 720);
-      const next = computePosition(rect, wantedWidth, isMobile ? 540 : 500);
+      const wantedWidth = isMobile ? Math.min(window.innerWidth - 24, 420) : Math.min(window.innerWidth - 24, 640);
+      const next = computePosition(rect, wantedWidth, isMobile ? 540 : 500, { preferBelow: true });
       setPosition({
         left: next.left,
         top: next.top,
@@ -717,9 +700,7 @@ export default function HomePage() {
             <div className="lodging-showcase">
               {buildCollectionCards(collection).map((lodging) => (
                 <Link key={lodging.key} className="showcase-row" to={`/lodgings/${lodging.id}`}>
-                  <div className="rail-card-visual" style={{ backgroundImage: `url(${lodging.image})` }}>
-                    <span className="rail-badge">추천 숙소</span>
-                  </div>
+                  <div className="rail-card-visual" style={{ backgroundImage: `url(${lodging.image})` }} />
                   <div className="showcase-copy">
                     <strong>{lodging.name}</strong>
                     <div className="showcase-kicker">
@@ -729,8 +710,6 @@ export default function HomePage() {
                       </span>
                     </div>
                     <p className="showcase-room-meta">{lodging.room}</p>
-                    <p className="showcase-intro">{lodging.intro}</p>
-                    <p className="showcase-benefit">{lodging.benefit}</p>
                     <div className="showcase-foot">
                       <div className="showcase-price-stack">
                         <div className="showcase-price-top">

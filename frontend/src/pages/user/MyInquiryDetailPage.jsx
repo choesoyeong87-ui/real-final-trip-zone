@@ -28,7 +28,13 @@ export default function MyInquiryDetailPage() {
 
   if (!thread) {
     return (
-      <MyPageLayout eyebrow="문의 상세" title="문의 정보를 찾을 수 없습니다." />
+      <MyPageLayout>
+        <section className="my-list-sheet">
+          <div className="my-empty-state">
+            <strong>문의 정보를 찾을 수 없습니다.</strong>
+          </div>
+        </section>
+      </MyPageLayout>
     );
   }
 
@@ -38,52 +44,58 @@ export default function MyInquiryDetailPage() {
   };
 
   return (
-    <MyPageLayout
-      eyebrow={TYPE_LABELS[thread.type] ?? thread.type}
-      title={thread.title}
-      description={`${thread.lodging} · ${thread.bookingNo} · ${thread.updatedAt}`}
-    >
-      <section className="my-page-panel">
-        <div className="summary-grid">
-          <div className="summary-card tone-mint">
-            <span>문의 상태</span>
-            <strong>{STATUS_LABELS[thread.status] ?? thread.status}</strong>
+    <MyPageLayout>
+      <section className="my-detail-sheet inquiry-thread-panel inquiry-thread-panel-v2">
+        <div className="mypage-header-row">
+          <div className="mypage-header-copy">
+            <strong>문의 상세</strong>
+            <p>문의 상태와 대화 흐름을 시간순으로 확인합니다.</p>
           </div>
-          <div className="summary-card tone-sand">
+        </div>
+        <div className="support-center-strip support-center-strip--hero">
+          <div className="support-center-item">
             <span>문의 유형</span>
             <strong>{TYPE_LABELS[thread.type] ?? thread.type}</strong>
           </div>
-          <div className="summary-card tone-blue">
-            <span>최근 갱신</span>
-            <strong>{thread.updatedAt}</strong>
+          <div className="support-center-item">
+            <span>상태</span>
+            <strong>{STATUS_LABELS[thread.status] ?? thread.status}</strong>
+          </div>
+          <div className="support-center-item">
+            <span>예약번호</span>
+            <strong>{thread.bookingNo}</strong>
           </div>
         </div>
-
-        <section className="inquiry-thread-panel">
-          <div className="inquiry-thread-list">
-            {thread.messages.map((message) => (
-              <article
-                key={`${thread.id}-${message.id}`}
-                className={`inquiry-message${message.sender === "회원" ? " is-user" : " is-operator"}`}
-              >
-                <div className="inquiry-message-head">
-                  <strong>{message.sender}</strong>
-                  <span>{message.time}</span>
-                </div>
-                <p>{message.body}</p>
-              </article>
-            ))}
+        <div className="inquiry-thread-head inquiry-thread-head-v2">
+          <div className="inquiry-thread-copy">
+            <strong>{thread.title}</strong>
+            <p>{TYPE_LABELS[thread.type] ?? thread.type} · {thread.lodging} · {thread.bookingNo}</p>
           </div>
-        </section>
+          <span className="my-stat-pill is-soft">{thread.updatedAt}</span>
+        </div>
 
-        <div className="booking-actions">
-          <Link className="secondary-button" to={`/my/inquiries/${thread.id}/edit`}>
+        <div className="inquiry-thread-list">
+          {thread.messages.map((message) => (
+            <article
+              key={`${thread.id}-${message.id}`}
+              className={`inquiry-message${message.sender === "회원" ? " is-user" : " is-operator"}`}
+            >
+              <div className="inquiry-message-head">
+                <strong>{message.sender}</strong>
+                <span>{message.time}</span>
+              </div>
+              <p>{message.body}</p>
+            </article>
+          ))}
+        </div>
+        <div className="payment-sheet-links inquiry-detail-links">
+          <Link className="coupon-action-button" to={`/my/inquiries/${thread.id}/edit`}>
             수정
           </Link>
-          <Link className="secondary-button" to="/my/inquiries">
+          <Link className="text-link" to="/my/inquiries">
             목록
           </Link>
-          <button type="button" className="danger-button" onClick={handleDelete}>
+          <button type="button" className="inquiry-danger-link" onClick={handleDelete}>
             삭제
           </button>
         </div>

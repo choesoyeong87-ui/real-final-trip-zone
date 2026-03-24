@@ -70,6 +70,7 @@ export default function Header() {
                     </p>
                   </div>
                   <div className="header-profile-dropdown-links">
+                    <Link className="header-dropdown-link" to="/my">마이페이지</Link>
                     <Link className="header-dropdown-link" to="/my/bookings">예약 내역</Link>
                     <Link className="header-dropdown-link" to="/my/wishlist">찜 목록</Link>
                     <Link className="header-dropdown-link" to="/my/mileage">마일리지</Link>

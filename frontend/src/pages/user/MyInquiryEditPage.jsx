@@ -3,6 +3,13 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
 import { findMyInquiryThread, updateMyInquiryThread } from "../../utils/myInquiryCenter";
 
+const TYPE_OPTIONS = [
+  { value: "LODGING", label: "숙소 문의", hint: "입실, 시설, 객실 상태" },
+  { value: "BOOKING", label: "예약 문의", hint: "일정 변경, 인원, 요청사항" },
+  { value: "PAYMENT", label: "결제 문의", hint: "결제 오류, 환불, 영수증" },
+  { value: "SYSTEM", label: "서비스 문의", hint: "로그인, 오류, 계정 문제" },
+];
+
 export default function MyInquiryEditPage() {
   const { inquiryId } = useParams();
   const navigate = useNavigate();
@@ -22,7 +29,13 @@ export default function MyInquiryEditPage() {
 
   if (!form) {
     return (
-      <MyPageLayout eyebrow="문의 수정" title="문의 정보를 찾을 수 없습니다." />
+      <MyPageLayout>
+        <section className="my-list-sheet">
+          <div className="my-empty-state">
+            <strong>문의 정보를 찾을 수 없습니다.</strong>
+          </div>
+        </section>
+      </MyPageLayout>
     );
   }
 
@@ -37,36 +50,54 @@ export default function MyInquiryEditPage() {
   };
 
   return (
-    <MyPageLayout eyebrow="문의 수정" title="문의 수정" description="수정 완료 후 문의 상세 화면으로 이동합니다.">
-      <form className="my-form-sheet" onSubmit={handleSubmit}>
-        <label className="field-block">
-          <span>문의 제목</span>
-          <input value={form.title} onChange={(e) => handleChange("title", e.target.value)} required />
-        </label>
-        <label className="field-block">
-          <span>문의 유형</span>
-          <select value={form.type} onChange={(e) => handleChange("type", e.target.value)}>
-            <option value="LODGING">숙소 문의</option>
-            <option value="BOOKING">예약 문의</option>
-            <option value="PAYMENT">결제 문의</option>
-            <option value="SYSTEM">시스템 문의</option>
-          </select>
-        </label>
-        <label className="field-block">
-          <span>관련 숙소</span>
-          <input value={form.lodging} onChange={(e) => handleChange("lodging", e.target.value)} />
-        </label>
-        <label className="field-block">
-          <span>관련 예약번호</span>
-          <input value={form.bookingNo} onChange={(e) => handleChange("bookingNo", e.target.value)} />
-        </label>
-        <label className="field-block">
-          <span>문의 내용</span>
-          <textarea value={form.body} onChange={(e) => handleChange("body", e.target.value)} required rows={6} />
-        </label>
-        <div className="booking-actions">
-          <button type="submit" className="primary-button">편집</button>
-          <Link className="secondary-button" to={`/my/inquiries/${inquiryId}`}>취소</Link>
+    <MyPageLayout>
+      <form className="inquiry-form-sheet inquiry-form-sheet-v2" onSubmit={handleSubmit}>
+        <div className="mypage-header-row">
+          <div className="mypage-header-copy">
+            <strong>문의 수정</strong>
+            <p>기존 문의 내용을 정리한 뒤 다시 상세 화면으로 돌아갑니다.</p>
+          </div>
+        </div>
+        <div className="mypage-guide-banner">
+          <span>문의 제목과 내용을 정리해서 다시 저장하세요.</span>
+        </div>
+        <div className="inquiry-form-grid">
+          <label className="field-block inquiry-field-full">
+            <span>문의 제목</span>
+            <input value={form.title} onChange={(e) => handleChange("title", e.target.value)} required />
+          </label>
+          <div className="field-block inquiry-field-full">
+            <span>문의 유형</span>
+            <div className="inquiry-type-grid" role="radiogroup" aria-label="문의 유형">
+              {TYPE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`inquiry-type-card${form.type === option.value ? " is-active" : ""}`}
+                  onClick={() => handleChange("type", option.value)}
+                >
+                  <strong>{option.label}</strong>
+                  <small>{option.hint}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="field-block">
+            <span>관련 예약번호</span>
+            <input value={form.bookingNo} onChange={(e) => handleChange("bookingNo", e.target.value)} />
+          </label>
+          <label className="field-block inquiry-field-full">
+            <span>관련 숙소</span>
+            <input value={form.lodging} onChange={(e) => handleChange("lodging", e.target.value)} />
+          </label>
+          <label className="field-block inquiry-field-full">
+            <span>문의 내용</span>
+            <textarea value={form.body} onChange={(e) => handleChange("body", e.target.value)} required rows={8} />
+          </label>
+        </div>
+        <div className="inquiry-action-bar">
+          <button type="submit" className="coupon-action-button inquiry-submit-link">수정 완료</button>
+          <Link className="text-link" to={`/my/inquiries/${inquiryId}`}>취소</Link>
         </div>
       </form>
     </MyPageLayout>

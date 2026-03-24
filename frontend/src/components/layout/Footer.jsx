@@ -17,10 +17,6 @@ export default function Footer() {
               </span>
             </Link>
             <p>국내 숙소 탐색부터 예약, 결제, 문의까지 이어지는 여행 예약 서비스</p>
-            <div className="footer-badges">
-              <span>국내 숙소</span>
-              <span>실시간 예약</span>
-            </div>
           </div>
           <div className="footer-link-grid">
             <div className="footer-link-block">

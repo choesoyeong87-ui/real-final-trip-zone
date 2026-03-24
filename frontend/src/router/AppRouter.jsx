@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AppShell from "../components/layout/AppShell";
 import HomePage from "../pages/common/HomePage";
 import DocsPage from "../pages/common/DocsPage";
@@ -11,9 +11,9 @@ import EventsPage from "../pages/common/EventsPage";
 import LodgingListPage from "../pages/user/LodgingListPage";
 import LodgingDetailPage from "../pages/user/LodgingDetailPage";
 import BookingPage from "../pages/user/BookingPage";
-import MyPageHomePage from "../pages/user/MyPageHomePage";
 import MyProfilePage from "../pages/user/MyProfilePage";
 import MyBookingsPage from "../pages/user/MyBookingsPage";
+import MyBookingDetailPage from "../pages/user/MyBookingDetailPage";
 import MyInquiriesPage from "../pages/user/MyInquiriesPage";
 import MyWishlistPage from "../pages/user/MyWishlistPage";
 import MyCouponsPage from "../pages/user/MyCouponsPage";
@@ -53,9 +53,10 @@ export default function AppRouter() {
           <Route path="/lodgings" element={<LodgingListPage />} />
           <Route path="/lodgings/:lodgingId" element={<LodgingDetailPage />} />
           <Route path="/booking/:lodgingId" element={<BookingPage />} />
-          <Route path="/my" element={<MyPageHomePage />} />
+          <Route path="/my" element={<Navigate to="/my/profile" replace />} />
           <Route path="/my/profile" element={<MyProfilePage />} />
           <Route path="/my/bookings" element={<MyBookingsPage />} />
+          <Route path="/my/bookings/:bookingId" element={<MyBookingDetailPage />} />
           <Route path="/my/inquiries" element={<MyInquiriesPage />} />
           <Route path="/my/inquiries/new" element={<MyInquiryCreatePage />} />
           <Route path="/my/inquiries/:inquiryId" element={<MyInquiryDetailPage />} />

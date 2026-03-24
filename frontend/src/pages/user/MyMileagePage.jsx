@@ -1,39 +1,79 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
 import MyPageLayout from "../../components/user/MyPageLayout";
-import { mileageHistoryRows, rewardSummaries } from "../../data/siteData";
+import { mileageHistoryRows } from "../../data/siteData";
 
 export default function MyMileagePage() {
+  const [filter, setFilter] = useState("all");
+  const earnedThisMonth = mileageHistoryRows
+    .filter((item) => item.type === "적립" && item.time.startsWith("2026.03"))
+    .reduce((sum, item) => sum + Number(item.amount.replace(/[+,]/g, "")), 0);
+  const usedThisMonth = mileageHistoryRows
+    .filter((item) => item.type === "사용" && item.time.startsWith("2026.03"))
+    .reduce((sum, item) => sum + Number(item.amount.replace(/[-,]/g, "")), 0);
+  const filteredRows = mileageHistoryRows.filter((item) => {
+    if (filter === "all") return true;
+    if (filter === "earn") return item.type === "적립";
+    if (filter === "use") return item.type === "사용";
+    return false;
+  });
+
   return (
-    <MyPageLayout eyebrow="마일리지 내역" title="마일리지 내역" description="적립과 사용 내역을 최신순으로 보여줍니다.">
-        <div className="summary-grid">
-          {rewardSummaries.map((item) => (
-            <div key={item.label} className={`summary-card tone-${item.tone}`}>
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
+    <MyPageLayout>
+      <section className="my-list-sheet mileage-sheet mileage-sheet-v2">
+        <div className="mypage-header-row">
+          <div className="mypage-header-copy">
+            <strong>마일리지</strong>
+            <p>예약과 활동으로 적립한 TripZone 마일리지를 확인합니다.</p>
+          </div>
+        </div>
+        <section className="mileage-hero-card">
+          <div className="mileage-hero-main">
+            <span>내 마일리지</span>
+            <strong>18,400P</strong>
+            <p>다음 예약 결제에서 바로 사용할 수 있는 보유 혜택</p>
+          </div>
+          <div className="mileage-hero-stats">
+            <div>
+              <span>이번 달 적립</span>
+              <strong>+{earnedThisMonth.toLocaleString()}</strong>
             </div>
-          ))}
+            <div>
+              <span>이번 달 사용</span>
+              <strong>-{usedThisMonth.toLocaleString()}</strong>
+            </div>
+          </div>
+        </section>
+        <div className="point-tab-row" role="tablist" aria-label="마일리지 필터">
+          <button type="button" className={`point-tab${filter === "all" ? " is-active" : ""}`} onClick={() => setFilter("all")}>전체</button>
+          <button type="button" className={`point-tab${filter === "earn" ? " is-active" : ""}`} onClick={() => setFilter("earn")}>적립</button>
+          <button type="button" className={`point-tab${filter === "use" ? " is-active" : ""}`} onClick={() => setFilter("use")}>사용</button>
         </div>
-
-        <div className="reward-list">
-          {mileageHistoryRows.map((item) => (
-            <article key={`${item.label}-${item.time}`} className="reward-row">
-              <div className="reward-row-copy">
+        {filteredRows.length ? (
+          <div className="payment-row-list mileage-row-list">
+            {filteredRows.map((item) => (
+            <article key={`${item.label}-${item.time}`} className="payment-row mileage-row">
+              <div className="payment-row-main">
+                <div className="payment-row-copy">
+                  <div className="payment-row-topline">
+                    <span className={`table-code${item.type === "사용" ? " code-refunded" : " code-available"}`}>
+                      {item.type}
+                    </span>
+                    <span>{item.time}</span>
+                  </div>
                 <strong>{item.label}</strong>
-                <p>{item.type} · {item.time}</p>
+                <p>{item.type === "사용" ? "예약 결제에 사용된 마일리지 내역입니다." : "예약과 활동으로 적립된 마일리지입니다."}</p>
               </div>
-              <strong className="reward-amount">{item.amount}</strong>
+              </div>
+              <div className="payment-row-side mileage-row-side">
+                <strong className={`reward-amount ${item.amount.startsWith("-") ? "is-minus" : "is-plus"}`}>{item.amount}</strong>
+              </div>
             </article>
-          ))}
-        </div>
-
-        <div className="booking-actions">
-          <Link className="secondary-button" to="/my/coupons">
-            쿠폰 리스트 보기
-          </Link>
-          <Link className="secondary-button" to="/my/payments">
-            결제 내역 보기
-          </Link>
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="my-empty-inline">포인트 내역이 없어요</div>
+        )}
+      </section>
     </MyPageLayout>
   );
 }
