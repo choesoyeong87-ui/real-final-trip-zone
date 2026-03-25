@@ -44,9 +44,9 @@ npm run dev -- --host 127.0.0.1 --port 5173
 
 기본 확인 주소:
 
-- 메인 앱: `http://127.0.0.1:5173/`
-- 설계 대시보드: `http://127.0.0.1:5173/submission-html/`
-- 발표자료: `http://127.0.0.1:5173/submission-html/presentation/index.html`
+- 메인 앱: [http://127.0.0.1:5173/](http://127.0.0.1:5173/)
+- 설계 대시보드: [http://127.0.0.1:5173/submission-html/](http://127.0.0.1:5173/submission-html/)
+- 발표자료: [http://127.0.0.1:5173/submission-html/presentation/index.html](http://127.0.0.1:5173/submission-html/presentation/index.html)
 
 ### 빌드 확인
 
@@ -55,35 +55,33 @@ cd frontend
 npm run build
 ```
 
-## 설계 문서 HTML 링크
+## 팀원 공유 링크
 
-모든 설계 문서는 `frontend/public/submission-html/` 기준으로 제공된다.
+팀원에게는 로컬 주소 대신 GitHub 링크를 공유한다.
 
 ### 메인 대시보드
 
-- 설계 대시보드: `/submission-html/`
+- 설계 대시보드 소스: [frontend/public/submission-html/index.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/index.html)
 
 ### 핵심 문서
 
-- 요구사항 명세서: `/submission-html/docs/requirements.html`
-- 기능 명세서: `/submission-html/docs/features.html`
-- 구조 명세서: `/submission-html/docs/structure.html`
-- DB 명세서: `/submission-html/docs/database.html`
+- 요구사항 명세서: [requirements.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/requirements.html)
+- 기능 명세서: [features.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/features.html)
+- 구조 명세서: [structure.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/structure.html)
+- DB 명세서: [database.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/database.html)
 
 ### 확장 기준 문서
 
-- 통합 기준서: `/submission-html/docs/company.html`
-- 구조 기준 v2: `/submission-html/docs/structure-v2.html`
-- DDL 기준 요약: `/submission-html/docs/ddl.html`
-- 제출 문서 안내: `/submission-html/docs/submission-guide.html`
-- 수정 코멘트: `/submission-html/docs/comments.html`
-- 프론트 연동 가이드: `/submission-html/docs/frontend-guide.html`
+- 통합 기준서: [company.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/company.html)
+- 구조 기준 v2: [structure-v2.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/structure-v2.html)
+- DDL 기준 요약: [ddl.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/ddl.html)
+- 제출 문서 안내: [submission-guide.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/submission-guide.html)
+- 수정 코멘트: [comments.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/comments.html)
+- 프론트 연동 가이드: [frontend-guide.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/frontend-guide.html)
 
 ### 발표자료
 
-- 발표자료 HTML deck: `/submission-html/presentation/`
-- 로컬 발표자료 주소: `http://127.0.0.1:5173/submission-html/presentation/index.html`
-- 발표자료 상대 경로: `/submission-html/presentation/index.html`
+- 발표자료 HTML deck: [presentation/index.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/presentation/index.html)
 - 발표자료 소스 HTML: `frontend/public/submission-html/presentation/index.html`
 - 발표자료 스타일: `frontend/public/submission-html/assets/presentation.css`
 - 발표자료 스크립트: `frontend/public/submission-html/assets/presentation.js`
