@@ -5,7 +5,7 @@ import {
   INQUIRY_STATUS_LABELS,
   INQUIRY_TYPE_LABELS,
 } from "../../features/mypage/mypageViewModels";
-import { deleteMyInquiryThread, findMyInquiryThread } from "../../utils/myInquiryCenter";
+import { getMyInquiryThreadById, removeInquiryThread } from "../../services/mypageService";
 
 export default function MyInquiryDetailPage() {
   const { inquiryId } = useParams();
@@ -13,7 +13,7 @@ export default function MyInquiryDetailPage() {
   const [thread, setThread] = useState(null);
 
   useEffect(() => {
-    setThread(findMyInquiryThread(inquiryId));
+    setThread(getMyInquiryThreadById(inquiryId));
   }, [inquiryId]);
 
   if (!thread) {
@@ -29,7 +29,7 @@ export default function MyInquiryDetailPage() {
   }
 
   const handleDelete = () => {
-    deleteMyInquiryThread(thread.id);
+    removeInquiryThread(thread.id);
     navigate("/my/inquiries");
   };
 

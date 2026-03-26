@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import DataTable from "../../components/common/DataTable";
-import { sellerRoomRows } from "../../data/opsData";
-import { readMockRows, writeMockRows } from "../../utils/mockStorage";
+import { getSellerRooms, updateSellerRoomStatus } from "../../services/dashboardService";
 
 const columns = [
   { key: "name", label: "객실명" },
@@ -14,56 +13,46 @@ const columns = [
 ];
 
 export default function SellerRoomsPage() {
-  const [rows, setRows] = useState(() => readMockRows("tripzone-seller-rooms", sellerRoomRows));
-  const [selectedName, setSelectedName] = useState(rows[0]?.name ?? null);
-  const selected = rows.find((row) => row.name === selectedName) ?? rows[0];
+  const [rows, setRows] = useState(() => getSellerRooms());
+  const [selectedKey, setSelectedKey] = useState(rows[0] ? `${rows[0].lodging}-${rows[0].name}` : null);
+  const selected = rows.find((row) => `${row.lodging}-${row.name}` === selectedKey) ?? rows[0];
 
   const updateStatus = (nextStatus) => {
     if (!selected) return;
-    const nextRows = rows.map((row) => (row.name === selected.name ? { ...row, status: nextStatus } : row));
+    const nextRows = updateSellerRoomStatus(selectedKey, nextStatus);
     setRows(nextRows);
-    writeMockRows("tripzone-seller-rooms", nextRows);
   };
 
   return (
-    <div className="container page-stack">
-      <section className="ops-list-head">
-        <div>
+    <DashboardLayout role="seller">
+      <div className="dash-page-header">
+        <div className="dash-page-header-copy">
           <p className="eyebrow">객실 운영</p>
           <h1>객실 관리</h1>
+          <p>예약 가능 {rows.filter((r) => r.status === "AVAILABLE").length}개 · 불가 {rows.filter((r) => r.status === "UNAVAILABLE").length}개</p>
         </div>
-        <div className="ops-toolbar">
-          <span className="inline-chip">예약 가능 2개</span>
-          <span className="inline-chip">예약 불가 1개</span>
-        </div>
-      </section>
-      <section className="ops-table-section">
-        <div className="ops-table-head">
-          <h2>객실 목록</h2>
-          <p>예약 가능 여부, 인원, 가격 기준으로 바로 확인</p>
-        </div>
-        <DataTable
-          columns={columns}
-          rows={rows}
-          getRowKey={(row) => `${row.lodging}-${row.name}`}
-          selectedKey={selected ? `${selected.lodging}-${selected.name}` : null}
-          onRowClick={(row) => setSelectedName(row.name)}
-        />
-        <div className="ops-action-panel">
-          <h3>{selected?.name ?? "선택된 객실 없음"}</h3>
-          <p>객실 예약 가능 상태를 변경합니다.</p>
-          <div className="ops-action-grid">
-            <button type="button" className="secondary-button" onClick={() => updateStatus("AVAILABLE")}>예약 가능</button>
-            <button type="button" className="secondary-button" onClick={() => updateStatus("UNAVAILABLE")}>예약 불가</button>
-            <button type="button" className="secondary-button" onClick={() => updateStatus("SUSPENDED")}>운영 중지</button>
+      </div>
+
+      <div className="dash-table-split">
+        <section className="dash-content-section" style={{ marginBottom: 0 }}>
+          <DataTable
+            columns={columns}
+            rows={rows}
+            getRowKey={(row) => `${row.lodging}-${row.name}`}
+            selectedKey={selectedKey}
+            onRowClick={(row) => setSelectedKey(`${row.lodging}-${row.name}`)}
+          />
+        </section>
+
+        <div className="dash-action-sheet">
+          <h3>{selected?.name ?? "—"}</h3>
+          <p>{selected?.lodging} · {selected?.type}</p>
+          <div className="dash-action-grid">
+            <button type="button" className="dash-action-btn is-primary" onClick={() => updateStatus("AVAILABLE")}>예약 가능</button>
+            <button type="button" className="dash-action-btn is-danger" onClick={() => updateStatus("UNAVAILABLE")}>예약 불가</button>
           </div>
         </div>
-        <div className="booking-actions">
-          <Link className="secondary-button" to="/seller/lodgings">숙소 관리</Link>
-          <Link className="secondary-button" to="/seller/reservations">예약 관리</Link>
-          <Link className="secondary-button" to="/seller/inquiries">문의 관리</Link>
-        </div>
-      </section>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

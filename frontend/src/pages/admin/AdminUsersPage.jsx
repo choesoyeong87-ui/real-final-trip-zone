@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import DataTable from "../../components/common/DataTable";
-import { userRows } from "../../data/dashboardData";
-import { readMockRows, writeMockRows } from "../../utils/mockStorage";
+import { getAdminUsers, updateAdminUserStatus } from "../../services/dashboardService";
 
 const columns = [
   { key: "name", label: "회원명" },
@@ -12,62 +11,47 @@ const columns = [
 ];
 
 export default function AdminUsersPage() {
-  const [rows, setRows] = useState(() => readMockRows("tripzone-admin-users", userRows));
+  const [rows, setRows] = useState(() => getAdminUsers());
   const [selectedEmail, setSelectedEmail] = useState(rows[0]?.email ?? null);
   const selectedUser = rows.find((row) => row.email === selectedEmail) ?? rows[0];
 
   const updateStatus = (nextStatus) => {
     if (!selectedUser) return;
-    const nextRows = rows.map((row) =>
-      row.email === selectedUser.email ? { ...row, status: nextStatus } : row
-    );
+    const nextRows = updateAdminUserStatus(selectedUser.email, nextStatus);
     setRows(nextRows);
-    writeMockRows("tripzone-admin-users", nextRows);
   };
 
   return (
-    <div className="container page-stack">
-      <section className="ops-list-head">
-        <div>
+    <DashboardLayout role="admin">
+      <div className="dash-page-header">
+        <div className="dash-page-header-copy">
           <p className="eyebrow">회원 운영</p>
           <h1>회원 관리</h1>
+          <p>총 {rows.length}명 · 활성 {rows.filter((r) => r.status === "ACTIVE").length} · 휴면 {rows.filter((r) => r.status === "DORMANT").length} · 차단 {rows.filter((r) => r.status === "BLOCKED").length}</p>
         </div>
-        <div className="ops-toolbar">
-          <span className="inline-chip">활성 {rows.filter((item) => item.status === "ACTIVE").length}명</span>
-          <span className="inline-chip">휴면 {rows.filter((item) => item.status === "DORMANT").length}명</span>
-          <span className="inline-chip">차단 {rows.filter((item) => item.status === "BLOCKED").length}명</span>
-        </div>
-      </section>
-      <section className="ops-table-section">
-        <div className="ops-table-head">
-          <h2>회원 목록</h2>
-          <p>권한과 상태 기준으로 계정 현황을 확인</p>
-        </div>
-        <DataTable
-          columns={columns}
-          rows={rows}
-          getRowKey={(row) => row.email}
-          selectedKey={selectedEmail}
-          onRowClick={(row) => setSelectedEmail(row.email)}
-        />
-        <div className="ops-action-panel">
-          <h3>{selectedUser?.name ?? "선택된 회원 없음"}</h3>
-          <p>회원 상태를 바로 변경합니다.</p>
-          <div className="ops-action-grid">
-            <button type="button" className="secondary-button" onClick={() => updateStatus("ACTIVE")}>활성</button>
-            <button type="button" className="secondary-button" onClick={() => updateStatus("DORMANT")}>휴면</button>
-            <button type="button" className="secondary-button" onClick={() => updateStatus("BLOCKED")}>차단</button>
-            <button type="button" className="secondary-button" onClick={() => updateStatus("DELETED")}>탈퇴</button>
+      </div>
+
+      <div className="dash-table-split">
+        <section className="dash-content-section" style={{ marginBottom: 0 }}>
+          <DataTable
+            columns={columns}
+            rows={rows}
+            getRowKey={(row) => row.email}
+            selectedKey={selectedEmail}
+            onRowClick={(row) => setSelectedEmail(row.email)}
+          />
+        </section>
+
+        <div className="dash-action-sheet">
+          <h3>{selectedUser?.name ?? "—"}</h3>
+          <p>{selectedUser?.email}</p>
+          <div className="dash-action-grid">
+            <button type="button" className="dash-action-btn is-primary" onClick={() => updateStatus("ACTIVE")}>활성</button>
+            <button type="button" className="dash-action-btn" onClick={() => updateStatus("DORMANT")}>휴면</button>
+            <button type="button" className="dash-action-btn is-danger" onClick={() => updateStatus("BLOCKED")}>차단</button>
           </div>
         </div>
-        <div className="booking-actions">
-          <Link className="secondary-button" to="/admin/sellers">판매자 관리</Link>
-          <Link className="secondary-button" to="/admin/events">이벤트 · 쿠폰</Link>
-          <Link className="secondary-button" to="/admin/inquiries">문의 모니터링</Link>
-          <Link className="secondary-button" to="/admin/reviews">리뷰 운영</Link>
-          <Link className="secondary-button" to="/admin/audit-logs">운영 로그</Link>
-        </div>
-      </section>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
-import { lodgings } from "../../data/lodgingData";
-import { myBookingRows } from "../../data/mypageData";
 import {
   BOOKING_STATUS_LABELS,
   filterBookingRows,
   getBookingTabSummary,
-  makeBookingId,
 } from "../../features/mypage/mypageViewModels";
+import { getLodgings } from "../../services/lodgingService";
+import { getMyBookings } from "../../services/mypageService";
 
+const lodgings = getLodgings();
+const myBookingRows = getMyBookings();
 const lodgingMap = Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging]));
 
 export default function MyBookingsPage() {
@@ -64,7 +65,7 @@ export default function MyBookingsPage() {
         </div>
         <div className="booking-list-rows booking-list-rows--flush">
           {filteredRows.map((item) => (
-            <article key={`${item.name}-${item.stay}`} className="booking-list-row">
+            <article key={item.bookingId} className="booking-list-row">
               <div className="booking-list-media">
                 <img src={lodgingMap[item.lodgingId]?.image} alt={item.name} />
               </div>
@@ -81,13 +82,13 @@ export default function MyBookingsPage() {
               <div className="booking-list-side">
                 <div className="booking-list-side-topline">
                   <span className={`table-code code-${item.status.toLowerCase()}`}>
-                    {BOOKING_STATUS_LABELS[item.status]}
+                    {item.bookingStatusLabel ?? BOOKING_STATUS_LABELS[item.status]}
                   </span>
-                  <span>{makeBookingId(item)}</span>
+                  <span>{item.bookingId}</span>
                 </div>
                 <strong className="booking-list-amount">{item.price}</strong>
                 <div className="booking-list-links">
-                  <Link className="coupon-action-button booking-action-button" to={`/my/bookings/${makeBookingId(item)}`}>
+                  <Link className="coupon-action-button booking-action-button" to={`/my/bookings/${item.bookingId}`}>
                     예약 상세
                   </Link>
                   {tab === "completed" ? (

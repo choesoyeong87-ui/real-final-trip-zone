@@ -1,4 +1,3 @@
-import { lodgings } from "../../data/lodgingData";
 import { CHOSEONG, WEEK_DAYS } from "./homeConstants";
 
 export function clamp(value, min, max) {
@@ -96,7 +95,7 @@ export function formatDateSummary(checkIn, checkOut) {
   return `${start.getMonth() + 1}.${start.getDate()} ${WEEK_DAYS[start.getDay()]} - ${end.getMonth() + 1}.${end.getDate()} ${WEEK_DAYS[end.getDay()]} · ${nights}박`;
 }
 
-export function buildCollectionCards(collection) {
+export function buildCollectionCards(collection, lodgings) {
   const base = collection.ids
     .map((id) => lodgings.find((item) => item.id === id))
     .filter(Boolean);

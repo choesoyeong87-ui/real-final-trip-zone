@@ -6,14 +6,14 @@ import {
   INQUIRY_STATUS_LABELS,
   INQUIRY_TYPE_LABELS,
 } from "../../features/mypage/mypageViewModels";
-import { readMyInquiryThreads } from "../../utils/myInquiryCenter";
+import { getMyInquiryThreads } from "../../services/mypageService";
 
 export default function MyInquiriesPage() {
   const [rows, setRows] = useState([]);
   const { answeredCount } = getInquiryCounts(rows);
 
   useEffect(() => {
-    setRows(readMyInquiryThreads());
+    setRows(getMyInquiryThreads());
   }, []);
 
   return (

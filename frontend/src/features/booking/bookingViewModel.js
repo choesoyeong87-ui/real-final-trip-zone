@@ -8,13 +8,16 @@ export function buildRoomOptions(lodging) {
 
 export function createInitialBookingForm(searchParams, roomOptions, lodging, couponOptions, paymentOptions) {
   const initialRoom = searchParams.get("room");
+  const checkIn = searchParams.get("checkIn") ?? "2026-03-28";
+  const checkOut = searchParams.get("checkOut") ?? "2026-03-30";
+  const guests = Number(searchParams.get("guests") ?? 2);
 
   return {
-    checkIn: "2026-03-28",
-    checkOut: "2026-03-30",
-    guests: 2,
+    checkIn,
+    checkOut,
+    guests: Number.isFinite(guests) && guests > 0 ? guests : 2,
     room: roomOptions.includes(initialRoom) ? initialRoom : lodging.room,
-    couponLabel: couponOptions[1].label,
+    couponLabel: couponOptions[0]?.label ?? "",
     paymentMethod: paymentOptions[0].value,
     request: "",
   };

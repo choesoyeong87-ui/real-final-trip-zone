@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { homeSearchDefaults } from "../../data/homeData";
-import { lodgingSortOptions, lodgings, searchSuggestionItems } from "../../data/lodgingData";
+import { lodgingSortOptions } from "../../data/lodgingData";
 import { DateRangePopover, GuestPopover, SuggestionsPanel } from "../../features/lodging-list/LodgingSearchPanels";
 import { LodgingListToolbar } from "../../features/lodging-list/LodgingListToolbar";
 import { LodgingResultsLayout } from "../../features/lodging-list/LodgingResultsLayout";
@@ -14,6 +14,7 @@ import {
   parseLodgingSearchState,
 } from "../../features/lodging-list/lodgingListViewModel";
 import { clamp, formatDateSummary, parseISO, toISO } from "../../features/lodging-list/lodgingListUtils";
+import { getLodgings, getSearchSuggestionItems } from "../../services/lodgingService";
 
 export default function LodgingListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,6 +27,8 @@ export default function LodgingListPage() {
   const calendarPanelRef = useRef(null);
   const guestPanelRef = useRef(null);
   const [mapInstance, setMapInstance] = useState(null);
+  const lodgings = useMemo(() => getLodgings(), []);
+  const searchSuggestionItems = useMemo(() => getSearchSuggestionItems(), []);
   const filters = parseLodgingSearchState(searchParams, homeSearchDefaults);
   const keyword = filters.keyword;
   const checkIn = filters.checkIn;
@@ -57,7 +60,7 @@ export default function LodgingListPage() {
 
   const allSuggestionItems = useMemo(() => {
     return buildSuggestionItems(lodgings, searchSuggestionItems);
-  }, []);
+  }, [lodgings, searchSuggestionItems]);
 
   const filteredSuggestions = useMemo(() => {
     return filterSuggestions(allSuggestionItems, searchForm.keyword);
@@ -65,7 +68,7 @@ export default function LodgingListPage() {
 
   const optionCounts = useMemo(() => {
     return buildOptionCounts(lodgings);
-  }, []);
+  }, [lodgings]);
 
   const filteredLodgings = useMemo(() => {
     return filterLodgings(lodgings, { ...filters, minPrice, maxPrice });

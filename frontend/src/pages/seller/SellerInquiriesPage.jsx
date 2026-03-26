@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { inquiryMessages, inquiryRooms } from "../../data/mypageData";
+import DashboardLayout from "../../components/layout/DashboardLayout";
+import { getSellerInquiryMessages, getSellerInquiryRooms } from "../../services/dashboardService";
 
 const statusLabel = {
   OPEN: "접수",
@@ -16,27 +17,28 @@ const typeLabel = {
 };
 
 export default function SellerInquiriesPage() {
+  const inquiryRooms = getSellerInquiryRooms();
   const [selectedRoomId, setSelectedRoomId] = useState(inquiryRooms[0]?.id ?? null);
 
   const selectedRoom = useMemo(
     () => inquiryRooms.find((room) => room.id === selectedRoomId) ?? inquiryRooms[0],
     [selectedRoomId]
   );
-  const messages = inquiryMessages[selectedRoom?.id] ?? [];
+  const messages = getSellerInquiryMessages(selectedRoom?.id);
 
   return (
-    <div className="container page-stack">
-      <section className="ops-list-head">
-        <div>
+    <DashboardLayout role="seller">
+      <div className="dash-page-header">
+        <div className="dash-page-header-copy">
           <p className="eyebrow">문의 운영</p>
           <h1>문의 관리</h1>
         </div>
-        <div className="ops-toolbar">
-          <span className="inline-chip">접수 1건</span>
-          <span className="inline-chip">답변 완료 1건</span>
-          <span className="inline-chip">종료 1건</span>
+        <div className="dash-chips">
+          <span className="dash-chip is-warning">접수 {inquiryRooms.filter((r) => r.status === "OPEN").length}건</span>
+          <span className="dash-chip is-accent">답변 완료 {inquiryRooms.filter((r) => r.status === "ANSWERED").length}건</span>
+          <span className="dash-chip">종료 {inquiryRooms.filter((r) => r.status === "CLOSED").length}건</span>
         </div>
-      </section>
+      </div>
 
       <section className="inquiry-layout">
         <aside className="inquiry-room-list">
@@ -94,6 +96,6 @@ export default function SellerInquiriesPage() {
           </div>
         </section>
       </section>
-    </div>
+    </DashboardLayout>
   );
 }

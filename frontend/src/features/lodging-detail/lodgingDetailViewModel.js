@@ -1,5 +1,3 @@
-import { lodgingReviews } from "../../data/lodgingDetailData";
-
 export function getLodgingDetail(lodgings, lodgingId) {
   return lodgings.find((item) => String(item.id) === lodgingId) ?? lodgings[0];
 }
@@ -73,8 +71,9 @@ export function buildRoomOptions(lodging) {
   ];
 }
 
-export function getReviewAverage() {
-  return (lodgingReviews.reduce((sum, item) => sum + Number(item.score), 0) / lodgingReviews.length).toFixed(1);
+export function getReviewAverage(reviews) {
+  if (!reviews.length) return "0.0";
+  return (reviews.reduce((sum, item) => sum + Number(item.score), 0) / reviews.length).toFixed(1);
 }
 
 export function canWriteLodgingReview(authSession, myBookingRows, lodgingId) {

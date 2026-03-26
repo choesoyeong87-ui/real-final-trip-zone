@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import StayMap from "../../components/common/StayMap";
-import { lodgings } from "../../data/lodgingData";
-import { lodgingReviews } from "../../data/lodgingDetailData";
-import { myBookingRows } from "../../data/mypageData";
 import { readAuthSession } from "../../utils/authSession";
 import { ReviewSection, RoomOptionsSection, StickyBookingCard } from "../../features/lodging-detail/LodgingDetailSections";
 import {
@@ -14,25 +11,33 @@ import {
   getReviewAverage,
 } from "../../features/lodging-detail/lodgingDetailViewModel";
 import { buildGalleryImages, getRoomMeta } from "../../features/lodging-detail/lodgingDetailUtils";
+import { getLodgingReviews, getLodgings } from "../../services/lodgingService";
+import { getMyBookings } from "../../services/mypageService";
 
 export default function LodgingDetailPage() {
   const { lodgingId } = useParams();
   const location = useLocation();
+  const lodgings = useMemo(() => getLodgings(), []);
+  const lodgingReviews = useMemo(() => getLodgingReviews(), []);
+  const myBookingRows = useMemo(() => getMyBookings(), []);
   const lodging = getLodgingDetail(lodgings, lodgingId);
   const roomOptions = useMemo(() => buildRoomOptions(lodging), [lodging]);
   const propertyStory = useMemo(() => buildPropertyStory(lodging), [lodging]);
   const galleryImages = useMemo(() => buildGalleryImages(lodging.image), [lodging.image]);
-  const reviewAverage = useMemo(() => getReviewAverage(), []);
   const [selectedRoom, setSelectedRoom] = useState(roomOptions[0]);
   const [selectedImage, setSelectedImage] = useState(galleryImages[0]);
   const [wishlisted, setWishlisted] = useState(false);
   const [shareLabel, setShareLabel] = useState("공유하기");
   const [reviewDraft, setReviewDraft] = useState({ score: 5, body: "", images: [] });
   const [reviews, setReviews] = useState(lodgingReviews);
+  const reviewAverage = useMemo(() => getReviewAverage(reviews), [reviews]);
   const reviewSectionRef = useRef(null);
   const authSession = readAuthSession();
   const roomBaseMeta = getRoomMeta(selectedRoom.name);
-  const canWriteReview = useMemo(() => canWriteLodgingReview(authSession, myBookingRows, lodging.id), [authSession, lodging.id]);
+  const canWriteReview = useMemo(
+    () => canWriteLodgingReview(authSession, myBookingRows, lodging.id),
+    [authSession, lodging.id, myBookingRows],
+  );
 
   useEffect(() => {
     if (location.hash !== "#reviews") return;

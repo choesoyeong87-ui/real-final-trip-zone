@@ -1,31 +1,22 @@
 import { Link, useParams } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
-import { lodgings } from "../../data/lodgingData";
-import { myBookingRows, paymentHistoryRows } from "../../data/mypageData";
+import { getLodgings } from "../../services/lodgingService";
+import { getMyBookingById, getMyPaymentByBookingId } from "../../services/mypageService";
 
-const STATUS_LABELS = {
-  CONFIRMED: "확정",
-  PENDING: "대기",
-  COMPLETED: "숙박 완료",
-};
-
-function makeBookingId(item) {
-  return `${item.lodgingId}-${item.stay.replace(/\./g, "").replace(/\s/g, "")}`;
-}
-
+const lodgings = getLodgings();
 const lodgingMap = Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging]));
 
 export default function MyBookingDetailPage() {
   const { bookingId } = useParams();
-  const booking = myBookingRows.find((item) => makeBookingId(item) === bookingId);
+  const booking = getMyBookingById(bookingId);
 
   if (!booking) {
     return <MyPageLayout eyebrow="예약 상세" title="예약 정보를 찾을 수 없습니다." />;
   }
 
   const lodging = lodgingMap[booking.lodgingId];
-  const payment = paymentHistoryRows.find((item) => item.lodgingName === booking.name && item.amount === booking.price);
-  const statusLabel = STATUS_LABELS[booking.status] ?? booking.status;
+  const payment = getMyPaymentByBookingId(booking.bookingId);
+  const statusLabel = booking.bookingStatusLabel ?? booking.status;
 
   return (
     <MyPageLayout>

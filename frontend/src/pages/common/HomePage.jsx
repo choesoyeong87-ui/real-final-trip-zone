@@ -5,7 +5,6 @@ import {
   homeSearchDefaults,
   promoBanners,
 } from "../../data/homeData";
-import { lodgingCollections } from "../../data/lodgingData";
 import { DateRangePopover, GuestPopover, SuggestionsPanel } from "../../features/home/HomeSearchPanels";
 import { HomeCollectionSection, HomePromoSection } from "../../features/home/HomeSections";
 import { SEARCH_TABS, SUGGESTION_ICON } from "../../features/home/homeConstants";
@@ -16,6 +15,7 @@ import {
   readRecentSearches,
   writeRecentSearches,
 } from "../../features/home/homeViewModel";
+import { getLodgingCollections, getLodgings, getSearchSuggestionItems } from "../../services/lodgingService";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -33,8 +33,14 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState("domestic");
   const [visibleMonth, setVisibleMonth] = useState(parseISO(homeSearchDefaults.checkIn) ?? new Date());
   const currentTab = SEARCH_TABS.find((tab) => tab.key === activeTab) ?? SEARCH_TABS[0];
+  const lodgings = useMemo(() => getLodgings(), []);
+  const lodgingCollections = useMemo(() => getLodgingCollections(), []);
+  const searchSuggestionItems = useMemo(() => getSearchSuggestionItems(), []);
 
-  const allSuggestionItems = useMemo(() => buildHomeSuggestionItems(), []);
+  const allSuggestionItems = useMemo(
+    () => buildHomeSuggestionItems(lodgings, searchSuggestionItems),
+    [lodgings, searchSuggestionItems],
+  );
 
   const filteredSuggestions = useMemo(() => filterHomeSuggestions(allSuggestionItems, searchForm.keyword), [allSuggestionItems, searchForm.keyword]);
 
@@ -252,7 +258,7 @@ export default function HomePage() {
           <HomeCollectionSection
             key={collection.title}
             collection={collection}
-            cards={buildCollectionCards(collection)}
+              cards={buildCollectionCards(collection, lodgings)}
           />
         ))}
       </div>

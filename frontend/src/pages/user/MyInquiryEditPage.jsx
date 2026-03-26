@@ -5,7 +5,7 @@ import {
   buildInquiryEditForm,
   INQUIRY_TYPE_OPTIONS,
 } from "../../features/mypage/mypageViewModels";
-import { findMyInquiryThread, updateMyInquiryThread } from "../../utils/myInquiryCenter";
+import { getMyInquiryThreadById, updateInquiryThread } from "../../services/mypageService";
 
 export default function MyInquiryEditPage() {
   const { inquiryId } = useParams();
@@ -13,7 +13,7 @@ export default function MyInquiryEditPage() {
   const [form, setForm] = useState(null);
 
   useEffect(() => {
-    const thread = findMyInquiryThread(inquiryId);
+    const thread = getMyInquiryThreadById(inquiryId);
     if (!thread) return;
     setForm(buildInquiryEditForm(thread));
   }, [inquiryId]);
@@ -36,7 +36,7 @@ export default function MyInquiryEditPage() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    updateMyInquiryThread(inquiryId, form);
+    updateInquiryThread(inquiryId, form);
     navigate(`/my/inquiries/${inquiryId}`);
   };
 
@@ -60,7 +60,7 @@ export default function MyInquiryEditPage() {
           <div className="field-block inquiry-field-full">
             <span>문의 유형</span>
             <div className="inquiry-type-grid" role="radiogroup" aria-label="문의 유형">
-              {TYPE_OPTIONS.map((option) => (
+              {INQUIRY_TYPE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"

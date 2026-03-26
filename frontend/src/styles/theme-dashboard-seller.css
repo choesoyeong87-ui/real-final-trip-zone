@@ -1,0 +1,33 @@
+/* ── Admin Role Colors ── */
+
+.dash-layout.is-admin {
+  --dash-accent: #2563eb;
+  --dash-accent-light: #93c5fd;
+  --dash-accent-strong: #1d4ed8;
+  --dash-shadow: rgba(37, 99, 235, 0.18);
+  --dash-active-bg: rgba(37, 99, 235, 0.06);
+  --dash-active-shadow: rgba(37, 99, 235, 0.08);
+  --dash-accent-border: rgba(37, 99, 235, 0.14);
+}
+
+.adminboard {
+  --ops-accent: #6aa7e4;
+  --ops-accent-strong: #2563eb;
+}
+
+/* ── Seller Role Colors ── */
+
+.dash-layout.is-seller {
+  --dash-accent: #059669;
+  --dash-accent-light: #6ee7b7;
+  --dash-accent-strong: #047857;
+  --dash-shadow: rgba(5, 150, 105, 0.18);
+  --dash-active-bg: rgba(5, 150, 105, 0.06);
+  --dash-active-shadow: rgba(5, 150, 105, 0.08);
+  --dash-accent-border: rgba(5, 150, 105, 0.14);
+}
+
+.sellerboard {
+  --ops-accent: #4f8dd3;
+  --ops-accent-strong: #059669;
+}

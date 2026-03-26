@@ -81,6 +81,7 @@
             <span>pages</span>
             <span>features</span>
             <span>data</span>
+            <span>lib/appClient</span>
             <span>viewModel 우선</span>
           </div>
           <div class="card-grid">
@@ -90,6 +91,8 @@
                 <li><span class="code-chip">pages/</span> 라우트 진입과 화면 조립</li>
                 <li><span class="code-chip">features/</span> UI 블록, viewModel, 유틸</li>
                 <li><span class="code-chip">data/</span> mock 데이터와 shape 기준</li>
+                <li><span class="code-chip">services/</span> API 또는 mock 교체 경계</li>
+                <li><span class="code-chip">lib/mockDb.js</span>는 localStorage 기반 mock DB 계층</li>
                 <li><span class="code-chip">siteData.js</span>는 더 이상 메인 연결 지점이 아님</li>
               </ul>
             </div>
@@ -97,8 +100,9 @@
               <h3>연결 순서</h3>
               <ul>
                 <li><span class="code-chip">1</span> data 파일의 shape를 API 응답과 맞춘다.</li>
-                <li><span class="code-chip">2</span> viewModel에서 화면용 데이터로 가공한다.</li>
-                <li><span class="code-chip">3</span> page는 가능하면 수정하지 않는다.</li>
+                <li><span class="code-chip">2</span> services에서 mock 또는 API를 선택한다.</li>
+                <li><span class="code-chip">3</span> viewModel에서 화면용 데이터로 가공한다.</li>
+                <li><span class="code-chip">4</span> page는 가능하면 수정하지 않는다.</li>
               </ul>
             </div>
           </div>

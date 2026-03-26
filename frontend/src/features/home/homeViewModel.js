@@ -1,9 +1,8 @@
-import { lodgings, searchSuggestionItems } from "../../data/lodgingData";
 import { matchesKeyword } from "./homeUtils";
 
 const RECENT_SEARCHES_KEY = "tripzone-recent-searches";
 
-export function buildHomeSuggestionItems() {
+export function buildHomeSuggestionItems(lodgings, searchSuggestionItems) {
   const lodgingItems = lodgings.flatMap((lodging) => [
     {
       label: lodging.name,

@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
-import { myBookingRows, paymentHistoryRows } from "../../data/mypageData";
-import { getPaymentSummary, makeBookingId } from "../../features/mypage/mypageViewModels";
+import { getPaymentSummary } from "../../features/mypage/mypageViewModels";
+import { getMyBookings, getMyPayments } from "../../services/mypageService";
 
 export default function MyPaymentsPage() {
+  const myBookingRows = getMyBookings();
+  const paymentHistoryRows = getMyPayments();
   const { paidCount, refundedCount, recentPaidAmount, recentRefundedAmount } = getPaymentSummary(paymentHistoryRows);
 
   return (
@@ -48,9 +50,9 @@ export default function MyPaymentsPage() {
               <div className="payment-row-side">
                 <strong className={`payment-row-amount${item.status === "REFUNDED" ? " is-refund" : ""}`}>{item.amount}</strong>
                 {(() => {
-                  const booking = myBookingRows.find((row) => row.name === item.lodgingName);
+                  const booking = myBookingRows.find((row) => row.bookingId === item.bookingId);
                   return booking ? (
-                    <Link className="coupon-action-button payment-action-button" to={`/my/bookings/${makeBookingId(booking)}`}>
+                    <Link className="coupon-action-button payment-action-button" to={`/my/bookings/${booking.bookingId}`}>
                       결제 상세
                     </Link>
                   ) : null;

@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
-import {
-  bookingChecklist,
-  bookingCouponOptions,
-  bookingPaymentOptions,
-  bookingStatusNotes,
-} from "../../data/bookingData";
-import { lodgings } from "../../data/lodgingData";
+import { useParams, useSearchParams } from "react-router-dom";
 import { readAuthSession } from "../../utils/authSession";
 import { DateRangePopover } from "../../features/booking/BookingPanels";
 import { BookingFormSection, BookingSummarySection } from "../../features/booking/BookingSections";
@@ -19,10 +12,22 @@ import {
   getBookingSelections,
 } from "../../features/booking/bookingViewModel";
 import { formatBookingDate, parseISO, toISO } from "../../features/booking/bookingUtils";
+import {
+  getBookingChecklist,
+  getBookingCouponOptions,
+  getBookingPaymentOptions,
+  getBookingStatusNotes,
+} from "../../services/bookingService";
+import { getLodgings } from "../../services/lodgingService";
 
 export default function BookingPage() {
   const { lodgingId } = useParams();
   const [searchParams] = useSearchParams();
+  const lodgings = getLodgings();
+  const bookingChecklist = getBookingChecklist();
+  const bookingCouponOptions = getBookingCouponOptions();
+  const bookingPaymentOptions = getBookingPaymentOptions();
+  const bookingStatusNotes = getBookingStatusNotes();
   const lodging = getBookingLodging(lodgings, lodgingId);
   const authSession = readAuthSession();
   const roomOptions = buildRoomOptions(lodging);
@@ -33,7 +38,7 @@ export default function BookingPage() {
   const checkInRef = useRef(null);
   const checkOutRef = useRef(null);
   const calendarPanelRef = useRef(null);
-  const [visibleMonth, setVisibleMonth] = useState(parseISO("2026-03-01") ?? new Date());
+  const [visibleMonth, setVisibleMonth] = useState(parseISO(searchParams.get("checkIn") ?? "2026-03-01") ?? new Date());
 
   const { selectedCoupon, selectedPayment } = getBookingSelections(form, bookingCouponOptions, bookingPaymentOptions);
   const { baseAmount, nightCount, serviceFee, roomTotal, totalAmount } = buildBookingPricing(lodging, form, selectedCoupon);

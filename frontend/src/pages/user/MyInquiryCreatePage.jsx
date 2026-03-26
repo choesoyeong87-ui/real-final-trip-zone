@@ -5,7 +5,7 @@ import {
   buildInquiryCreateForm,
   INQUIRY_TYPE_OPTIONS,
 } from "../../features/mypage/mypageViewModels";
-import { createMyInquiryThread } from "../../utils/myInquiryCenter";
+import { createInquiryThread } from "../../services/mypageService";
 
 export default function MyInquiryCreatePage() {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ export default function MyInquiryCreatePage() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    createMyInquiryThread(form);
+    createInquiryThread(form);
     navigate("/my/inquiries");
   };
 
@@ -43,7 +43,7 @@ export default function MyInquiryCreatePage() {
           <div className="field-block inquiry-field-full">
             <span>문의 유형</span>
             <div className="inquiry-type-grid" role="radiogroup" aria-label="문의 유형">
-              {TYPE_OPTIONS.map((option) => (
+              {INQUIRY_TYPE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
