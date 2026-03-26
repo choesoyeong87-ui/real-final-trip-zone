@@ -131,6 +131,21 @@ npm run build
 - 제출 문서 안내: [submission-guide.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/submission-guide.html)
 - 수정 코멘트: [comments.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/comments.html)
 - 프론트 연동 가이드: [frontend-guide.html](https://github.com/Changwan2450/real-final-trip-zone/blob/main/frontend/public/submission-html/docs/frontend-guide.html)
+- 백엔드 AI 브리프: `docs/07_백엔드AI작업브리프.md`
+
+### 백엔드 팀원 AI 질문 방법
+
+백엔드 팀원이 ChatGPT, Claude, Gemini, 웹 LLM 등에 질문할 때는 아래 순서를 권장한다.
+
+1. 먼저 `docs/07_백엔드AI작업브리프.md` 전체를 통째로 넣는다.
+2. 그 다음 현재 작업 중인 `controller`, `dto`, `service`, `domain` 파일이나 에러 로그를 같이 넣는다.
+3. 질문은 추상적으로 하지 말고 `이 DTO를 설계도 기준으로 어떻게 고쳐야 하는지`, `이 API 응답을 프론트 service에 어떻게 맞출지`처럼 구체적으로 한다.
+
+이 방식을 쓰는 이유:
+
+- 프로젝트가 무엇인지 매번 다시 설명할 필요가 없다.
+- AI가 설계도 우선, Oracle 기준, 프론트 `services` 연결 구조를 먼저 이해하고 답한다.
+- 문의/인증/관리자 운영처럼 현재 충돌이 있는 구간에서 잘못된 답이 줄어든다.
 
 ### 발표자료
 
