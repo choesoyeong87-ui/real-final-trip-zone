@@ -20,6 +20,9 @@ function CalendarMonth({ baseDate, startDate, endDate, onPick }) {
       <div className="calendar-grid">
         {days.map((day) => {
           const isCurrentMonth = day.getMonth() === baseDate.getMonth();
+          if (!isCurrentMonth) {
+            return <span key={toISO(day)} className="calendar-day-placeholder" aria-hidden="true" />;
+          }
           const isStart = sameDate(day, startDate);
           const isEnd = sameDate(day, endDate);
           const isBetween = betweenDate(day, startDate, endDate);
@@ -28,12 +31,8 @@ function CalendarMonth({ baseDate, startDate, endDate, onPick }) {
             <button
               key={toISO(day)}
               type="button"
-              className={`calendar-day${isCurrentMonth ? "" : " is-muted"}${isStart ? " is-start" : ""}${isEnd ? " is-end" : ""}${isBetween ? " is-between" : ""}`}
-              onClick={() => {
-                if (!isCurrentMonth) return;
-                onPick(day);
-              }}
-              disabled={!isCurrentMonth}
+              className={`calendar-day${isStart ? " is-start" : ""}${isEnd ? " is-end" : ""}${isBetween ? " is-between" : ""}`}
+              onClick={() => onPick(day)}
             >
               {day.getDate()}
             </button>
@@ -112,7 +111,7 @@ export function DateRangePopover({ open, anchorRef, panelRef, visibleMonth, setV
       const rect = anchorRef.current.getBoundingClientRect();
       const isMobile = window.innerWidth <= 960;
       const width = isMobile ? Math.min(window.innerWidth - 24, 420) : Math.min(window.innerWidth - 24, 720);
-      const next = computePosition(rect, width, isMobile ? 540 : 500);
+      const next = computePosition(rect, width, isMobile ? 540 : 500, { preferBelow: true });
       setPosition({
         left: next.left,
         top: next.top,

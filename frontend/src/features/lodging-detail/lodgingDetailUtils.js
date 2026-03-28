@@ -1,5 +1,9 @@
 export function buildGalleryImages(image) {
-  return [image, `${image}&sat=-10`, `${image}&exp=5`];
+  return [
+    image,
+    `${image}&sat=-14&contrast=8&crop=entropy`,
+    `${image}&exp=8&hue=12&crop=entropy`,
+  ];
 }
 
 export function getRoomMeta(roomName) {

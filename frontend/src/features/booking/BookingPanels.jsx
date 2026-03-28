@@ -64,7 +64,7 @@ export function DateRangePopover({ open, anchorRef, panelRef, visibleMonth, setV
       const rect = anchorRef.current.getBoundingClientRect();
       const isMobile = window.innerWidth <= 960;
       const wantedWidth = isMobile ? Math.min(window.innerWidth - 24, 420) : Math.min(window.innerWidth - 24, 720);
-      const next = computePosition(rect, wantedWidth, isMobile ? 540 : 500);
+      const next = computePosition(rect, wantedWidth, isMobile ? 540 : 500, { preferBelow: true });
       setPosition({
         left: next.left,
         top: next.top,

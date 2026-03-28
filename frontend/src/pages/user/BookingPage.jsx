@@ -43,6 +43,7 @@ export default function BookingPage() {
   const { selectedCoupon, selectedPayment } = getBookingSelections(form, bookingCouponOptions, bookingPaymentOptions);
   const { baseAmount, nightCount, serviceFee, roomTotal, totalAmount } = buildBookingPricing(lodging, form, selectedCoupon);
   const ctaHref = getBookingCtaHref(authSession);
+  const statusSummary = authSession ? "로그인 완료 · 예약 정보 저장 가능" : "로그인 전 상태 · 예약 직전 로그인 필요";
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -90,6 +91,7 @@ export default function BookingPage() {
             <span className="inline-chip">예약 상태 PENDING</span>
             <span className="inline-chip">결제 상태 READY</span>
             <span className="inline-chip">{nightCount}박 일정</span>
+            <span className="inline-chip">{totalAmount.toLocaleString()}원</span>
           </div>
         </div>
       </section>

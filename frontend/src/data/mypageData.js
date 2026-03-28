@@ -5,14 +5,14 @@ export const myBookingSummaries = [
 ];
 
 export const myPageSections = [
-  { title: "내 정보 관리", subtitle: "등급과 회원 정보를 확인하고 수정 흐름을 준비합니다.", href: "/my/profile" },
-  { title: "판매자 신청", subtitle: "사업자 정보를 제출하고 승인 상태를 확인합니다.", href: "/my/seller-apply" },
-  { title: "쿠폰 리스트", subtitle: "보유 쿠폰을 최신순으로 확인합니다.", href: "/my/coupons" },
-  { title: "예약 내역", subtitle: "최신 예약 상태와 후기 작성 흐름을 확인합니다.", href: "/my/bookings" },
-  { title: "마일리지 내역", subtitle: "보유 마일리지와 적립/사용 내역을 확인합니다.", href: "/my/mileage" },
-  { title: "위시리스트", subtitle: "찜한 숙소에서 상세 페이지로 바로 이동합니다.", href: "/my/wishlist" },
-  { title: "결제 내역", subtitle: "숙소 결제와 환불 내역을 최신순으로 봅니다.", href: "/my/payments" },
-  { title: "문의센터", subtitle: "문의 등록, 상세, 수정, 삭제 흐름을 확인합니다.", href: "/my/inquiries" },
+  { title: "내 정보 관리", subtitle: "등급과 회원 정보를 확인하고 수정 흐름을 준비합니다.", href: "/my/profile", icon: "◉", accent: "teal" },
+  { title: "판매자 신청", subtitle: "사업자 정보를 제출하고 승인 상태를 확인합니다.", href: "/my/seller-apply", icon: "◈", accent: "blue" },
+  { title: "쿠폰 리스트", subtitle: "보유 쿠폰을 최신순으로 확인합니다.", href: "/my/coupons", icon: "✦", accent: "amber" },
+  { title: "예약 내역", subtitle: "최신 예약 상태와 후기 작성 흐름을 확인합니다.", href: "/my/bookings", icon: "◻", accent: "teal" },
+  { title: "마일리지 내역", subtitle: "보유 마일리지와 적립/사용 내역을 확인합니다.", href: "/my/mileage", icon: "◆", accent: "amber" },
+  { title: "위시리스트", subtitle: "찜한 숙소에서 상세 페이지로 바로 이동합니다.", href: "/my/wishlist", icon: "♥", accent: "rose" },
+  { title: "결제 내역", subtitle: "숙소 결제와 환불 내역을 최신순으로 봅니다.", href: "/my/payments", icon: "▣", accent: "blue" },
+  { title: "문의센터", subtitle: "문의 등록, 상세, 수정, 삭제 흐름을 확인합니다.", href: "/my/inquiries", icon: "◎", accent: "sage" },
 ];
 
 export const myProfileSummary = {

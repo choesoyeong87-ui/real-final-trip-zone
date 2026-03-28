@@ -68,14 +68,15 @@ export function scoreSuggestion(item, keyword) {
   return score;
 }
 
-export function computePosition(anchorRect, wantedWidth, wantedHeight) {
+export function computePosition(anchorRect, wantedWidth, wantedHeight, options = {}) {
+  const { preferBelow = false } = options;
   const margin = 12;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const left = clamp(anchorRect.left, margin, viewportWidth - wantedWidth - margin);
   let top = anchorRect.bottom + 8;
 
-  if (top + wantedHeight > viewportHeight - margin) {
+  if (!preferBelow && top + wantedHeight > viewportHeight - margin) {
     top = clamp(anchorRect.top - wantedHeight - 8, margin, viewportHeight - wantedHeight - margin);
   }
 
@@ -99,11 +100,15 @@ export function monthGrid(baseDate) {
   const first = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
   const start = new Date(first);
   start.setDate(1 - first.getDay());
-  return Array.from({ length: 42 }, (_, index) => {
+  const days = Array.from({ length: 42 }, (_, index) => {
     const day = new Date(start);
     day.setDate(start.getDate() + index);
     return day;
   });
+  if (days[35].getMonth() !== baseDate.getMonth()) {
+    days.splice(35, 7);
+  }
+  return days;
 }
 
 export function sameDate(left, right) {

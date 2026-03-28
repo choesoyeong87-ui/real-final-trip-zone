@@ -17,6 +17,12 @@ export default function MyBookingDetailPage() {
   const lodging = lodgingMap[booking.lodgingId];
   const payment = getMyPaymentByBookingId(booking.bookingId);
   const statusLabel = booking.bookingStatusLabel ?? booking.status;
+  const overviewItems = [
+    { label: "예약 일정", value: booking.stay },
+    { label: "객실", value: lodging?.room ?? "객실 정보 없음" },
+    { label: "결제 수단", value: payment?.detail ?? "결제 정보 없음" },
+    { label: "취소 규정", value: lodging?.cancellation ?? "확인 필요" },
+  ];
 
   return (
     <MyPageLayout>
@@ -32,13 +38,27 @@ export default function MyBookingDetailPage() {
             <img src={lodging?.image} alt={booking.name} />
           </div>
           <div className="booking-detail-summary">
+            <span className="small-label">예약 상세</span>
             <strong>{booking.name}</strong>
             <p>{lodging?.district} · {lodging?.room}</p>
             <div className="booking-detail-price">
               <span>결제 금액</span>
               <strong>{booking.price}</strong>
             </div>
+            <div className="booking-detail-chip-row">
+              <span className={`table-code code-${booking.status.toLowerCase()}`}>{statusLabel}</span>
+              <span className="my-stat-pill is-soft">주문 정보 {bookingId}</span>
+            </div>
           </div>
+        </div>
+
+        <div className="booking-detail-overview">
+          {overviewItems.map((item) => (
+            <div key={item.label} className="booking-detail-overview-item">
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
         </div>
 
         <div className="booking-detail-grid">

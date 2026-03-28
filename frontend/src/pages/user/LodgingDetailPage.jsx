@@ -14,6 +14,61 @@ import { buildGalleryImages, getRoomMeta } from "../../features/lodging-detail/l
 import { getLodgingReviews, getLodgings } from "../../services/lodgingService";
 import { getMyBookings } from "../../services/mypageService";
 
+const sellerContactByLodging = {
+  1: {
+    name: "오션스테이 운영팀",
+    badge: "평균 8분 내 응답",
+    status: "실시간 응답 가능",
+    messages: [
+      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 해운대 오션 스테이입니다. 체크인 시간이나 주차 여부 편하게 물어보세요." },
+      { id: "guest-1", sender: "guest", time: "방금 전", body: "오션뷰 객실은 고층으로 배정 가능한지 궁금해요." },
+      { id: "seller-2", sender: "seller", time: "방금 전", body: "예약 순서대로 배정하지만, 요청사항에 남겨주시면 가능한 범위에서 우선 반영하고 있어요." },
+    ],
+  },
+  2: {
+    name: "제주 포레스트 하우스",
+    badge: "평균 12분 내 응답",
+    status: "실시간 응답 가능",
+    messages: [
+      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 제주 포레스트 하우스입니다. 바비큐, 주차, 체크인 동선 관련 문의를 바로 도와드릴게요." },
+      { id: "guest-1", sender: "guest", time: "방금 전", body: "바비큐 존은 우천 시에도 이용 가능한가요?" },
+      { id: "seller-2", sender: "seller", time: "방금 전", body: "지붕이 있는 공간이 따로 있어서 비 오는 날에도 이용 가능해요. 숯 세트는 당일 오후 5시 전까지 신청해 주세요." },
+    ],
+  },
+  3: {
+    name: "강릉 코스트 라운지",
+    badge: "평균 10분 내 응답",
+    status: "실시간 응답 가능",
+    messages: [
+      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 강릉 코스트 라운지입니다. 수영장, 조식, 늦은 체크인 문의를 받고 있어요." },
+    ],
+  },
+  4: {
+    name: "서울 시티 모먼트",
+    badge: "평균 6분 내 응답",
+    status: "실시간 응답 가능",
+    messages: [
+      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 서울 시티 모먼트입니다. 주차와 셀프 체크인 동선을 빠르게 안내해 드릴게요." },
+    ],
+  },
+  5: {
+    name: "여수 선셋 마리나",
+    badge: "평균 11분 내 응답",
+    status: "실시간 응답 가능",
+    messages: [
+      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 여수 선셋 마리나입니다. 테라스, 노을 시간, 인룸 다이닝 문의를 도와드리고 있어요." },
+    ],
+  },
+  6: {
+    name: "경주 헤리티지 한옥",
+    badge: "평균 9분 내 응답",
+    status: "실시간 응답 가능",
+    messages: [
+      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 경주 헤리티지 한옥입니다. 주차, 다도 세트, 늦은 체크인 문의를 남겨 주세요." },
+    ],
+  },
+};
+
 export default function LodgingDetailPage() {
   const { lodgingId } = useParams();
   const location = useLocation();
@@ -28,10 +83,15 @@ export default function LodgingDetailPage() {
   const [selectedImage, setSelectedImage] = useState(galleryImages[0]);
   const [wishlisted, setWishlisted] = useState(false);
   const [shareLabel, setShareLabel] = useState("공유하기");
+  const [isInquiryOpen, setIsInquiryOpen] = useState(false);
+  const [chatDraft, setChatDraft] = useState("");
   const [reviewDraft, setReviewDraft] = useState({ score: 5, body: "", images: [] });
   const [reviews, setReviews] = useState(lodgingReviews);
+  const sellerContact = sellerContactByLodging[lodging.id] ?? sellerContactByLodging[1];
+  const [chatMessages, setChatMessages] = useState(sellerContact.messages);
   const reviewAverage = useMemo(() => getReviewAverage(reviews), [reviews]);
   const reviewSectionRef = useRef(null);
+  const inquiryThreadRef = useRef(null);
   const authSession = readAuthSession();
   const roomBaseMeta = getRoomMeta(selectedRoom.name);
   const canWriteReview = useMemo(
@@ -47,6 +107,30 @@ export default function LodgingDetailPage() {
 
     return () => window.clearTimeout(timer);
   }, [location.hash]);
+
+  useEffect(() => {
+    setChatMessages(sellerContact.messages);
+  }, [sellerContact]);
+
+  useEffect(() => {
+    if (!isInquiryOpen) return undefined;
+    const originalOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setIsInquiryOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    const timer = window.setTimeout(() => {
+      inquiryThreadRef.current?.scrollTo({ top: inquiryThreadRef.current.scrollHeight, behavior: "smooth" });
+    }, 40);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+      window.clearTimeout(timer);
+    };
+  }, [isInquiryOpen, chatMessages]);
 
   const handleShare = async () => {
     const targetUrl = `${window.location.origin}/lodgings/${lodging.id}`;
@@ -86,6 +170,19 @@ export default function LodgingDetailPage() {
     setReviewDraft((current) => ({ ...current, images: nextImages }));
   };
 
+  const handleInquirySubmit = (event) => {
+    event.preventDefault();
+    const body = chatDraft.trim();
+    if (!body) return;
+
+    setChatMessages((current) => [
+      ...current,
+      { id: `guest-${Date.now()}`, sender: "guest", time: "방금 전", body },
+      { id: `seller-${Date.now() + 1}`, sender: "seller", time: "곧 답변 예정", body: "문의 남겨주셔서 감사합니다. 운영팀이 확인 후 이 채팅창으로 바로 답변드릴게요." },
+    ]);
+    setChatDraft("");
+  };
+
   return (
     <div className="container page-stack">
       <section className="lodging-hero">
@@ -122,6 +219,9 @@ export default function LodgingDetailPage() {
             <button type="button" className="detail-utility-button detail-utility-button-share" onClick={handleShare}>
               {shareLabel}
             </button>
+            <button type="button" className="detail-utility-button detail-utility-button-inquiry" onClick={() => setIsInquiryOpen(true)}>
+              숙소문의
+            </button>
           </div>
         </div>
       </section>
@@ -148,7 +248,6 @@ export default function LodgingDetailPage() {
             <span className="small-label">숙소 정보</span>
             <h2>{lodging.region} · {lodging.type}</h2>
             <p>{lodging.address}</p>
-            <p>{lodging.intro}</p>
           </div>
 
           <div className="detail-info-rail">
@@ -242,6 +341,59 @@ export default function LodgingDetailPage() {
 
         <StickyBookingCard lodging={lodging} selectedRoom={selectedRoom} roomBaseMeta={roomBaseMeta} />
       </section>
+
+      {isInquiryOpen && (
+        <div className="lodging-inquiry-modal" role="dialog" aria-modal="true" aria-labelledby="lodging-inquiry-title">
+          <button type="button" className="lodging-inquiry-backdrop" aria-label="문의 팝업 닫기" onClick={() => setIsInquiryOpen(false)} />
+          <section className="lodging-inquiry-sheet">
+            <header className="lodging-inquiry-header">
+              <div className="lodging-inquiry-host">
+                <span className="lodging-inquiry-avatar">{sellerContact.name.slice(0, 1)}</span>
+                <div>
+                  <p className="lodging-inquiry-eyebrow">숙소 문의</p>
+                  <h2 id="lodging-inquiry-title">{sellerContact.name}</h2>
+                  <div className="lodging-inquiry-status">
+                    <span>{sellerContact.status}</span>
+                    <span>{sellerContact.badge}</span>
+                  </div>
+                </div>
+              </div>
+              <button type="button" className="lodging-inquiry-close" onClick={() => setIsInquiryOpen(false)}>
+                닫기
+              </button>
+            </header>
+
+            <div className="lodging-inquiry-summary">
+              <strong>{lodging.name}</strong>
+              <span>{selectedRoom.name} · {lodging.checkInTime} 체크인 · {lodging.cancellation}</span>
+            </div>
+
+            <div className="lodging-inquiry-thread" ref={inquiryThreadRef}>
+              {chatMessages.map((message) => (
+                <article key={message.id} className={`lodging-chat-bubble is-${message.sender}`}>
+                  <span className="lodging-chat-time">{message.time}</span>
+                  <p>{message.body}</p>
+                </article>
+              ))}
+            </div>
+
+            <form className="lodging-inquiry-form" onSubmit={handleInquirySubmit}>
+              <textarea
+                value={chatDraft}
+                onChange={(event) => setChatDraft(event.target.value)}
+                placeholder="체크인 시간, 주차, 바비큐, 객실 배정처럼 예약 전 확인할 내용을 남겨보세요."
+                rows={3}
+              />
+              <div className="lodging-inquiry-form-foot">
+                <span>응답은 이 팝업 안에서 이어집니다.</span>
+                <button type="submit" className="primary-button">
+                  보내기
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

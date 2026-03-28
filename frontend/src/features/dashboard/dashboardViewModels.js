@@ -56,20 +56,44 @@ export function getAdminDashboardViewModel({ users, sellers, adminInquiries, aud
         { label: "전체 판매자", value: `${formatMetricValue(sellers.length)}명` },
       ],
       links: [
-        { label: "판매자 승인", to: "/admin/sellers" },
-        { label: "회원 관리", to: "/admin/users" },
-        { label: "문의 모니터링", to: "/admin/inquiries" },
-        { label: "이벤트 · 쿠폰", to: "/admin/events" },
-        { label: "리뷰 운영", to: "/admin/reviews" },
+        { label: "판매자 승인", to: "/admin/sellers", icon: "◈", accent: "blue" },
+        { label: "회원 관리", to: "/admin/users", icon: "◉", accent: "teal" },
+        { label: "문의 모니터링", to: "/admin/inquiries", icon: "◎", accent: "amber" },
+        { label: "이벤트 · 쿠폰", to: "/admin/events", icon: "✦", accent: "rose" },
+        { label: "리뷰 운영", to: "/admin/reviews", icon: "◆", accent: "sage" },
       ],
     },
     metrics: [
-      { label: "총 매출액", value: `${totalRevenue}만` },
-      { label: "총 예약 수", value: `${totalBookings}건` },
-      { label: "예약 완료율", value: `${confirmedRate}%` },
-      { label: "예약 취소율", value: `${cancelRate}%` },
-      { label: "승인 대기 판매자", value: formatMetricValue(pendingSellers) },
-      { label: "미답변 문의", value: formatMetricValue(openInquiries) },
+      {
+        label: "총 매출액", value: `${totalRevenue}만`,
+        sparkline: monthlyOps.map((m) => m.revenue),
+        trend: "+14%", trendUp: true,
+      },
+      {
+        label: "총 예약 수", value: `${totalBookings}건`,
+        sparkline: monthlyOps.map((m) => m.bookings),
+        trend: "+8%", trendUp: true,
+      },
+      {
+        label: "예약 완료율", value: `${confirmedRate}%`,
+        gauge: confirmedRate,
+        trend: "안정", trendUp: true,
+      },
+      {
+        label: "예약 취소율", value: `${cancelRate}%`,
+        gauge: cancelRate, gaugeMax: 20,
+        trend: "관리", trendUp: false,
+      },
+      {
+        label: "승인 대기 판매자", value: formatMetricValue(pendingSellers),
+        alert: pendingSellers > 0,
+        trend: "처리 필요", trendUp: false,
+      },
+      {
+        label: "미답변 문의", value: formatMetricValue(openInquiries),
+        alert: openInquiries > 0,
+        trend: "처리 필요", trendUp: false,
+      },
     ],
     reservationMix,
     sellerPerformance,
@@ -94,6 +118,7 @@ export function getAdminDashboardViewModel({ users, sellers, adminInquiries, aud
       subtitle: item.actor ?? item.admin,
       target: item.target,
       time: item.time,
+      type: item.type ?? "default",
     })),
     trends: monthlyOps.map((item) => ({
       label: item.month,
@@ -159,10 +184,26 @@ export function getSellerDashboardViewModel({ reservations, lodgings, metrics, s
       ],
     },
     metrics: [
-      { label: "오늘 체크인", value: formatMetricValue(todayCheckIns) },
-      { label: "답변 대기 문의", value: formatMetricValue(waitingInquiries) },
-      { label: "운영 숙소", value: formatMetricValue(activeLodgings) },
-      { label: "가동 객실", value: formatMetricValue(availableRooms) },
+      {
+        label: "오늘 체크인", value: formatMetricValue(todayCheckIns),
+        sparkline: [3, 5, 4, 6, 4, parseInt(todayCheckIns) || 6],
+        trend: "+12%", trendUp: true,
+      },
+      {
+        label: "답변 대기 문의", value: formatMetricValue(waitingInquiries),
+        alert: parseInt(waitingInquiries) > 0,
+        trend: "처리 필요", trendUp: false,
+      },
+      {
+        label: "운영 숙소", value: formatMetricValue(activeLodgings),
+        gauge: activeLodgings, gaugeMax: lodgings.length || 1,
+        trend: "운영 중", trendUp: true,
+      },
+      {
+        label: "가동 객실", value: formatMetricValue(availableRooms),
+        sparkline: [8, 10, 9, 11, 12, parseInt(availableRooms) || 12],
+        trend: "안정", trendUp: true,
+      },
     ],
     reservationRows: todayReservations.map((item) => ({
       no: item.no,
@@ -184,10 +225,10 @@ export function getSellerDashboardViewModel({ reservations, lodgings, metrics, s
     trends: monthlyBookingBars,
     checklist: sellerTasks,
     quickLinks: [
-      { title: "문의 관리", subtitle: "답변 대기 확인", to: "/seller/inquiries" },
-      { title: "객실 관리", subtitle: "판매 가능 상태 확인", to: "/seller/rooms" },
-      { title: "이미지 관리", subtitle: "대표 이미지 정리", to: "/seller/assets" },
-      { title: "숙소 관리", subtitle: "운영 상태 점검", to: "/seller/lodgings" },
+      { title: "문의 관리", subtitle: "답변 대기 확인", to: "/seller/inquiries", icon: "◎", accent: "amber" },
+      { title: "객실 관리", subtitle: "판매 가능 상태 확인", to: "/seller/rooms", icon: "◻", accent: "teal" },
+      { title: "이미지 관리", subtitle: "대표 이미지 정리", to: "/seller/assets", icon: "▣", accent: "blue" },
+      { title: "숙소 관리", subtitle: "운영 상태 점검", to: "/seller/lodgings", icon: "◆", accent: "sage" },
     ],
   };
 }

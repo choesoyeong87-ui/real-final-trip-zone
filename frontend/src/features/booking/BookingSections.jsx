@@ -35,8 +35,9 @@ export function BookingFormSection({
       </div>
 
       <div className="booking-inline-guide">
-        {bookingChecklist.map((item) => (
+        {bookingChecklist.map((item, i) => (
           <span key={item} className="booking-guide-chip">
+            <span className="booking-guide-num">{i + 1}</span>
             {item}
           </span>
         ))}

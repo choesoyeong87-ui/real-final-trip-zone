@@ -75,6 +75,8 @@ export default function LodgingListPage() {
   }, [filters, maxPrice, minPrice]);
 
   const [activeLodgingId, setActiveLodgingId] = useState(filteredLodgings[0]?.id ?? null);
+  const selectedLodging = filteredLodgings.find((item) => item.id === activeLodgingId) ?? filteredLodgings[0] ?? null;
+  const activeFilterCount = filterSummary.length + (availableOnly ? 1 : 0);
 
   useEffect(() => {
     setSearchForm({ keyword, checkIn, checkOut, guests });
@@ -204,6 +206,21 @@ export default function LodgingListPage() {
       <section className="list-hero">
         <div>
           <p className="eyebrow">숙소 검색</p>
+          <h1>{keyword ? `${keyword} 주변 숙소 ${filteredLodgings.length}곳` : `지금 예약 가능한 숙소 ${filteredLodgings.length}곳`}</h1>
+          <p>
+            {formatDateSummary(checkIn, checkOut)} · 성인 {guests}명 ·
+            {activeFilterCount ? ` 필터 ${activeFilterCount}개 적용 중` : " 전체 조건 보기"}
+          </p>
+        </div>
+        <div className="list-hero-meta">
+          <div className="list-hero-stat">
+            <span>선택 숙소</span>
+            <strong>{selectedLodging?.name ?? "없음"}</strong>
+          </div>
+          <div className="list-hero-stat">
+            <span>정렬</span>
+            <strong>{lodgingSortOptions.find((item) => item.value === sort)?.label ?? "추천순"}</strong>
+          </div>
         </div>
       </section>
 
@@ -213,7 +230,7 @@ export default function LodgingListPage() {
           className={`list-search-field list-search-field-button${activePanel === "keyword" ? " is-active" : ""}`}
         >
           <span>숙소 검색</span>
-          <input className="search-input" value={searchForm.keyword} placeholder="제주, 부산, 강릉, 서울" onFocus={() => setActivePanel("keyword")} onChange={(event) => {
+          <input className="search-input" value={searchForm.keyword} placeholder="여행지를 입력하세요" onFocus={() => setActivePanel("keyword")} onChange={(event) => {
             setSearchForm((current) => ({ ...current, keyword: event.target.value }));
             setActivePanel("keyword");
           }} />
@@ -297,8 +314,9 @@ export default function LodgingListPage() {
         sort={sort}
       />
 
-      <div className="list-debug-bar" aria-live="polite">
-        선택 숙소: {filteredLodgings.find((item) => item.id === activeLodgingId)?.name ?? "없음"} · ID {activeLodgingId ?? "null"}
+      <div className="list-results-head" aria-live="polite">
+        <strong>선택 숙소: {selectedLodging?.name ?? "없음"}</strong>
+        <span>{selectedLodging ? `${selectedLodging.region} · ${selectedLodging.district} · ${selectedLodging.price}` : "조건을 조정해보세요."}</span>
       </div>
 
       <LodgingResultsLayout

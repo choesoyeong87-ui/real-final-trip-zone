@@ -63,9 +63,9 @@ export const adminInquiryRows = [
 ];
 
 export const auditLogRows = [
-  { actor: "관리자 김주임", action: "판매자 승인", target: "포레스트 하우스", time: "오늘 09:20" },
-  { actor: "관리자 박대리", action: "회원 상태 변경", target: "최다은", time: "오늘 10:14" },
-  { actor: "관리자 이과장", action: "쿠폰 비활성화", target: "주말 12,000원 할인", time: "어제 18:02" },
+  { actor: "관리자 김주임", action: "판매자 승인", target: "포레스트 하우스", time: "오늘 09:20", type: "approve" },
+  { actor: "관리자 박대리", action: "회원 상태 변경", target: "최다은", time: "오늘 10:14", type: "warn" },
+  { actor: "관리자 이과장", action: "쿠폰 비활성화", target: "주말 12,000원 할인", time: "어제 18:02", type: "mute" },
 ];
 
 export const sellerMetrics = [

@@ -134,10 +134,9 @@ export default function HomePage() {
         <div className="home-hero-overlay" />
         <div className="home-hero-inner">
           <div className="home-hero-copy">
-            <div className="home-hero-brand">TripZone</div>
-            <h1>오늘 바로 예약 가능한 국내 숙소</h1>
-            <p>숙소 검색부터 예약, 결제, 문의까지 이어지는 국내 숙소 예약 메인입니다.</p>
-            <div className="hero-actions">
+            <div className="home-hero-brand">국내 숙소 예약</div>
+            <h1>오늘 갈 곳을 빠르게 정하고 바로 예약하세요</h1>
+<div className="hero-actions">
               <Link className="primary-button" to="/lodgings">
                 숙소 검색하기
               </Link>

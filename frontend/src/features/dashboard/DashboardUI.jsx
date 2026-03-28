@@ -1,8 +1,65 @@
 import { Link } from "react-router-dom";
 
-export function DashboardHero({ eyebrow, title, description, links, facts, spotlight, insightTitle, insightRows, ariaLabel }) {
+function Sparkline({ values, filled = true }) {
+  if (!values || values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const W = 88, H = 36;
+  const pts = values.map((v, i) => [
+    (i / (values.length - 1)) * W,
+    H - ((v - min) / range) * (H - 6) - 3,
+  ]);
+  const polyline = pts.map(([x, y]) => `${x},${y}`).join(" ");
+  const area =
+    `M${pts[0][0]},${H} ` +
+    pts.map(([x, y]) => `L${x},${y}`).join(" ") +
+    ` L${pts[pts.length - 1][0]},${H} Z`;
+
   return (
-    <header className="opsdash-hero">
+    <svg viewBox={`0 0 ${W} ${H}`} className="dash-sparkline" preserveAspectRatio="none" aria-hidden="true">
+      {filled && <path d={area} className="dash-sparkline-fill" />}
+      <polyline points={polyline} className="dash-sparkline-line" strokeWidth="1.8" fill="none" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DonutGauge({ value, max = 100 }) {
+  const r = 13, cx = 16, cy = 16;
+  const circumference = 2 * Math.PI * r;
+  const pct = Math.min(value / max, 1);
+  const filled = circumference * pct;
+  const empty = circumference * (1 - pct);
+
+  return (
+    <svg viewBox="0 0 32 32" className="dash-gauge" aria-hidden="true">
+      <circle cx={cx} cy={cy} r={r} fill="none" className="dash-gauge-track" strokeWidth="3.5" />
+      <circle
+        cx={cx} cy={cy} r={r} fill="none"
+        className="dash-gauge-fill"
+        strokeWidth="3.5"
+        strokeDasharray={`${filled} ${empty}`}
+        strokeDashoffset={circumference * 0.25}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function DashboardHero({
+  eyebrow,
+  title,
+  description,
+  links,
+  facts,
+  spotlight,
+  insightTitle,
+  insightRows,
+  ariaLabel,
+  compact = false,
+}) {
+  return (
+    <header className={`opsdash-hero${compact ? " is-compact" : ""}`}>
       <div className="opsdash-hero-main">
         <div className="opsdash-hero-copy">
           <p className="eyebrow">{eyebrow}</p>
@@ -44,13 +101,13 @@ export function DashboardHero({ eyebrow, title, description, links, facts, spotl
               <Link key={`${item.title}-${item.to}`} to={item.to} className="opsdash-focus-row">
                 <div className="opsdash-focus-main">
                   <div className="opsdash-focus-meta">
-                    <span>{item.label}</span>
+                    {item.label ? <span>{item.label}</span> : null}
                     {item.status ? <strong className={`status-pill status-${item.status.toLowerCase()}`}>{item.status}</strong> : null}
                   </div>
                   <strong>{item.title}</strong>
                   <p>{item.meta}</p>
                 </div>
-                <span className="opsdash-row-arrow">보기</span>
+                <span className="opsdash-row-arrow">{item.actionLabel ?? "보기"}</span>
               </Link>
             ))}
           </div>
@@ -60,24 +117,43 @@ export function DashboardHero({ eyebrow, title, description, links, facts, spotl
   );
 }
 
-export function DashboardMetricStrip({ items, label }) {
+export function DashboardMetricStrip({ items, label, className = "" }) {
   return (
-    <section className="opsdash-metric-strip" aria-label={label}>
+    <section className={`opsdash-metric-strip${className ? ` ${className}` : ""}`} aria-label={label}>
       {items.map((item) => (
-        <article key={item.label} className="opsdash-metric-card">
-          <span>{item.label}</span>
-          <strong>{item.value}</strong>
+        <article
+          key={item.label}
+          className={`opsdash-metric-card${item.alert ? " is-alert" : ""}${item.sparkline ? " has-sparkline" : ""}${item.gauge != null ? " has-gauge" : ""}${!item.sparkline && item.gauge == null ? " is-plain" : ""}`}
+        >
+          <div className="opsdash-metric-top">
+            <span className="opsdash-metric-label">{item.label}</span>
+            {item.trend && (
+              <span className={`opsdash-metric-trend ${item.trendUp ? "is-up" : "is-down"}`}>
+                {item.trendUp ? "↑" : "↓"} {item.trend}
+              </span>
+            )}
+          </div>
+          <strong className="opsdash-metric-value">{item.value}</strong>
+          {item.sparkline ? (
+            <div className="opsdash-metric-chart">
+              <Sparkline values={item.sparkline} filled />
+            </div>
+          ) : item.gauge != null ? (
+            <div className="opsdash-metric-chart opsdash-metric-gauge-wrap">
+              <DonutGauge value={item.gauge} max={item.gaugeMax ?? 100} />
+            </div>
+          ) : null}
         </article>
       ))}
     </section>
   );
 }
 
-export function DashboardFocusList({ rows }) {
+export function DashboardFocusList({ rows, compact = false }) {
   return (
-    <div className="opsdash-focus-list">
+    <div className={`opsdash-focus-list${compact ? " is-compact" : ""}`}>
       {rows.map((item) => (
-        <Link key={`${item.title}-${item.to}`} to={item.to} className="opsdash-focus-row">
+        <Link key={`${item.title}-${item.to}`} to={item.to} className={`opsdash-focus-row${compact ? " is-compact" : ""}`}>
           <div className="opsdash-focus-main">
             <div className="opsdash-focus-meta">
               {item.label ? <span>{item.label}</span> : null}
@@ -118,12 +194,12 @@ export function DashboardLogList({ rows }) {
   return (
     <div className="opsdash-log-list">
       {rows.map((item) => (
-        <div key={`${item.title}-${item.time}`} className="opsdash-log-row">
+        <div key={`${item.title}-${item.time}`} className={`opsdash-log-row is-${item.type ?? "default"}`}>
+          <span className="opsdash-log-dot" aria-hidden="true" />
           <div className="opsdash-log-main">
             <strong>{item.title}</strong>
-            <p>{item.subtitle}</p>
+            <p>{item.subtitle} · {item.target}</p>
           </div>
-          <span className="opsdash-log-target">{item.target}</span>
           <time>{item.time}</time>
         </div>
       ))}
@@ -199,12 +275,15 @@ export function DashboardStayList({ rows }) {
           <div className="opsdash-stay-main">
             <span>{item.region}</span>
             <strong>{item.name}</strong>
-            <p>{item.detail}</p>
+            <div className="opsdash-stay-meta">
+              <span>{item.roomSummary}</span>
+              <span>{item.inquirySummary}</span>
+            </div>
           </div>
           <div className="opsdash-stay-side">
             <strong className={`status-pill status-${item.status.toLowerCase()}`}>{item.status}</strong>
             <div className="opsdash-stay-occupancy">
-              <span>점유율</span>
+              <span>가동률</span>
               <strong>{item.occupancy}</strong>
             </div>
             <div className="opsdash-track">
@@ -217,11 +296,11 @@ export function DashboardStayList({ rows }) {
   );
 }
 
-export function DashboardWatchList({ rows }) {
+export function DashboardWatchList({ rows, compact = false }) {
   return (
-    <div className="opsdash-watch-list">
+    <div className={`opsdash-watch-list${compact ? " is-compact" : ""}`}>
       {rows.map((item) => (
-        <div key={item.email} className="opsdash-watch-row">
+        <div key={item.email} className={`opsdash-watch-row${compact ? " is-compact" : ""}`}>
           <div className="opsdash-focus-meta">
             <strong className={`status-pill status-${item.status.toLowerCase()}`}>{item.status}</strong>
             <span>{item.role}</span>
@@ -260,13 +339,19 @@ export function DashboardChecklist({ items }) {
   );
 }
 
-export function DashboardLinkList({ items }) {
+export function DashboardLinkList({ items, compact = false }) {
   return (
-    <div className="opsdash-link-list">
+    <div className={`opsdash-link-list${compact ? " is-compact" : ""}`}>
       {items.map((item) => (
-        <Link key={item.to} className="opsdash-link-row" to={item.to}>
-          <strong>{item.title}</strong>
-          <span>{item.subtitle}</span>
+        <Link key={item.to} className={`opsdash-link-row${item.accent ? ` has-icon` : ""}${compact ? " is-compact" : ""}`} to={item.to}>
+          {item.icon && (
+            <span className={`opsdash-link-icon is-${item.accent}`} aria-hidden="true">{item.icon}</span>
+          )}
+          <div className="opsdash-link-copy">
+            <strong>{item.title}</strong>
+            <span>{item.subtitle}</span>
+          </div>
+          <span className="opsdash-link-arrow" aria-hidden="true">→</span>
         </Link>
       ))}
     </div>

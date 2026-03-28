@@ -64,11 +64,16 @@ export function monthGrid(baseDate) {
   const first = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
   const start = new Date(first);
   start.setDate(1 - first.getDay());
-  return Array.from({ length: 42 }, (_, index) => {
+  const days = Array.from({ length: 42 }, (_, index) => {
     const day = new Date(start);
     day.setDate(start.getDate() + index);
     return day;
   });
+  // Trim trailing row if it's entirely outside the current month
+  if (days[35].getMonth() !== baseDate.getMonth()) {
+    days.splice(35, 7);
+  }
+  return days;
 }
 
 export function sameDate(left, right) {
@@ -112,8 +117,8 @@ export function buildCollectionCards(collection, lodgings) {
       ...lodging,
       key: `${collection.region}-${lodging.id}-${index}`,
       benefit: index % 2 === 0 ? lodging.benefit : lodging.highlights[index % lodging.highlights.length],
-      originalPrice: hasDiscount ? `${originalPrice.toLocaleString()}원` : "",
-      discountRate: hasDiscount ? `${discountRate}%` : "",
+      originalPrice: hasDiscount && discountRate > 0 ? `${originalPrice.toLocaleString()}원` : "",
+      discountRate: hasDiscount && discountRate > 0 ? `${discountRate}%` : "",
     };
   });
 }
