@@ -105,6 +105,8 @@ export function buildCollectionCards(collection, lodgings) {
     .map((id) => lodgings.find((item) => item.id === id))
     .filter(Boolean);
 
+  if (!base.length) return [];
+
   return Array.from({ length: 4 }, (_, index) => {
     const lodging = base[index % base.length];
     const currentPrice = Number(String(lodging.price).replace(/[^\d]/g, ""));

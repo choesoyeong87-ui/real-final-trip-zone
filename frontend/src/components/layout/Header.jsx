@@ -42,7 +42,7 @@ export default function Header() {
   };
 
   const membershipLabel = session?.role === "ROLE_USER" ? myProfileSummary.grade : getMembershipLabel(session);
-  const profileLabel = session?.role === "ROLE_USER" ? myProfileSummary.name : session?.name;
+  const profileLabel = session?.name ?? myProfileSummary.name;
   const roleLinks = getHeaderRoleLinks(session);
   const availableCouponCount = session?.role === "ROLE_USER" ? getMyCoupons().filter((item) => item.status === "사용 가능").length : 0;
   const upcomingBookingCount = session?.role === "ROLE_USER" ? myBookingRows.filter((item) => item.status !== "COMPLETED").length : 0;

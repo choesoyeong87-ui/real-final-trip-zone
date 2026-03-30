@@ -27,8 +27,8 @@ export default function LodgingListPage() {
   const calendarPanelRef = useRef(null);
   const guestPanelRef = useRef(null);
   const [mapInstance, setMapInstance] = useState(null);
-  const lodgings = useMemo(() => getLodgings(), []);
-  const searchSuggestionItems = useMemo(() => getSearchSuggestionItems(), []);
+  const [lodgings, setLodgings] = useState([]);
+  const [searchSuggestionItems, setSearchSuggestionItems] = useState([]);
   const filters = parseLodgingSearchState(searchParams, homeSearchDefaults);
   const keyword = filters.keyword;
   const checkIn = filters.checkIn;
@@ -58,23 +58,32 @@ export default function LodgingListPage() {
   const [visibleMonth, setVisibleMonth] = useState(parseISO(checkIn) ?? new Date());
   const filterSummary = buildFilterSummary(filters, lodgingSortOptions);
 
-  const allSuggestionItems = useMemo(() => {
-    return buildSuggestionItems(lodgings, searchSuggestionItems);
-  }, [lodgings, searchSuggestionItems]);
+  useEffect(() => {
+    let cancelled = false;
 
-  const filteredSuggestions = useMemo(() => {
-    return filterSuggestions(allSuggestionItems, searchForm.keyword);
-  }, [allSuggestionItems, searchForm.keyword]);
+    async function loadLodgingData() {
+      try {
+        const [nextLodgings, nextSuggestions] = await Promise.all([getLodgings(), getSearchSuggestionItems()]);
+        if (cancelled) return;
+        setLodgings(nextLodgings);
+        setSearchSuggestionItems(nextSuggestions);
+      } catch (error) {
+        console.error("Failed to load lodging list data.", error);
+      }
+    }
 
-  const optionCounts = useMemo(() => {
-    return buildOptionCounts(lodgings);
-  }, [lodgings]);
+    loadLodgingData();
 
-  const filteredLodgings = useMemo(() => {
-    return filterLodgings(lodgings, { ...filters, minPrice, maxPrice });
-  }, [filters, maxPrice, minPrice]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const [activeLodgingId, setActiveLodgingId] = useState(filteredLodgings[0]?.id ?? null);
+  const allSuggestionItems = useMemo(() => buildSuggestionItems(lodgings, searchSuggestionItems), [lodgings, searchSuggestionItems]);
+  const filteredSuggestions = useMemo(() => filterSuggestions(allSuggestionItems, searchForm.keyword), [allSuggestionItems, searchForm.keyword]);
+  const optionCounts = useMemo(() => buildOptionCounts(lodgings), [lodgings]);
+  const filteredLodgings = useMemo(() => filterLodgings(lodgings, { ...filters, minPrice, maxPrice }), [filters, lodgings, maxPrice, minPrice]);
+  const [activeLodgingId, setActiveLodgingId] = useState(null);
   const selectedLodging = filteredLodgings.find((item) => item.id === activeLodgingId) ?? filteredLodgings[0] ?? null;
   const activeFilterCount = filterSummary.length + (availableOnly ? 1 : 0);
 
@@ -95,6 +104,7 @@ export default function LodgingListPage() {
         setActivePanel(null);
       }
     };
+
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, []);
@@ -116,8 +126,10 @@ export default function LodgingListPage() {
   const focusLodging = (lodgingId) => {
     setActiveLodgingId(lodgingId);
     if (!mapInstance) return;
+
     const target = filteredLodgings.find((lodging) => lodging.id === lodgingId);
     if (!target) return;
+
     const latitude = Number(target.latitude);
     const longitude = Number(target.longitude);
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
@@ -132,8 +144,10 @@ export default function LodgingListPage() {
 
   useEffect(() => {
     if (!mapInstance || !activeLodgingId) return;
+
     const target = filteredLodgings.find((lodging) => lodging.id === activeLodgingId);
     if (!target) return;
+
     const latitude = Number(target.latitude);
     const longitude = Number(target.longitude);
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
@@ -208,14 +222,14 @@ export default function LodgingListPage() {
           <p className="eyebrow">숙소 검색</p>
           <h1>{keyword ? `${keyword} 주변 숙소 ${filteredLodgings.length}곳` : `지금 예약 가능한 숙소 ${filteredLodgings.length}곳`}</h1>
           <p>
-            {formatDateSummary(checkIn, checkOut)} · 성인 {guests}명 ·
-            {activeFilterCount ? ` 필터 ${activeFilterCount}개 적용 중` : " 전체 조건 보기"}
+            {formatDateSummary(checkIn, checkOut)} · 성인 {guests}명
+            {activeFilterCount ? ` · 필터 ${activeFilterCount}개 적용 중` : " · 전체 조건 보기"}
           </p>
         </div>
         <div className="list-hero-meta">
           <div className="list-hero-stat">
             <span>선택 숙소</span>
-            <strong>{selectedLodging?.name ?? "없음"}</strong>
+            <strong>{selectedLodging?.name ?? "불러오는 중"}</strong>
           </div>
           <div className="list-hero-stat">
             <span>정렬</span>
@@ -230,10 +244,16 @@ export default function LodgingListPage() {
           className={`list-search-field list-search-field-button${activePanel === "keyword" ? " is-active" : ""}`}
         >
           <span>숙소 검색</span>
-          <input className="search-input" value={searchForm.keyword} placeholder="여행지를 입력하세요" onFocus={() => setActivePanel("keyword")} onChange={(event) => {
-            setSearchForm((current) => ({ ...current, keyword: event.target.value }));
-            setActivePanel("keyword");
-          }} />
+          <input
+            className="search-input"
+            value={searchForm.keyword}
+            placeholder="여행지를 입력해 보세요"
+            onFocus={() => setActivePanel("keyword")}
+            onChange={(event) => {
+              setSearchForm((current) => ({ ...current, keyword: event.target.value }));
+              setActivePanel("keyword");
+            }}
+          />
         </label>
         <button
           ref={dateRef}
@@ -315,18 +335,31 @@ export default function LodgingListPage() {
       />
 
       <div className="list-results-head" aria-live="polite">
-        <strong>선택 숙소: {selectedLodging?.name ?? "없음"}</strong>
-        <span>{selectedLodging ? `${selectedLodging.region} · ${selectedLodging.district} · ${selectedLodging.price}` : "조건을 조정해보세요."}</span>
+        <strong>선택 숙소: {selectedLodging?.name ?? "불러오는 중"}</strong>
+        <span>
+          {selectedLodging
+            ? `${selectedLodging.region} · ${selectedLodging.district} · ${selectedLodging.price}`
+            : "조건에 맞는 숙소를 불러오고 있어요."}
+        </span>
       </div>
 
-      <LodgingResultsLayout
-        filteredLodgings={filteredLodgings}
-        activeLodgingId={activeLodgingId}
-        focusLodging={focusLodging}
-        handleListPointer={handleListPointer}
-        mapInstance={mapInstance}
-        setMapInstance={setMapInstance}
-      />
+      {!lodgings.length ? (
+        <section className="lodging-results">
+          <div className="list-empty-state list-empty-state-full">
+            <strong>숙소 목록을 불러오는 중입니다.</strong>
+            <p>백엔드에서 숙소 데이터를 가져오고 있어요.</p>
+          </div>
+        </section>
+      ) : (
+        <LodgingResultsLayout
+          filteredLodgings={filteredLodgings}
+          activeLodgingId={activeLodgingId}
+          focusLodging={focusLodging}
+          handleListPointer={handleListPointer}
+          mapInstance={mapInstance}
+          setMapInstance={setMapInstance}
+        />
+      )}
     </div>
   );
 }

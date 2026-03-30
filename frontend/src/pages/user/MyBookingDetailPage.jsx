@@ -1,14 +1,33 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
 import { getLodgings } from "../../services/lodgingService";
 import { getMyBookingById, getMyPaymentByBookingId } from "../../services/mypageService";
 
-const lodgings = getLodgings();
-const lodgingMap = Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging]));
-
 export default function MyBookingDetailPage() {
   const { bookingId } = useParams();
+  const [lodgingMap, setLodgingMap] = useState({});
   const booking = getMyBookingById(bookingId);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLodgings() {
+      try {
+        const lodgings = await getLodgings();
+        if (cancelled) return;
+        setLodgingMap(Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging])));
+      } catch (error) {
+        console.error("Failed to load lodging map for booking detail.", error);
+      }
+    }
+
+    loadLodgings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (!booking) {
     return <MyPageLayout eyebrow="예약 상세" title="예약 정보를 찾을 수 없습니다." />;
@@ -79,10 +98,8 @@ export default function MyBookingDetailPage() {
             <strong>{lodging?.region} · {lodging?.district}</strong>
           </div>
           <div className="booking-detail-row">
-            <span>체크인/체크아웃</span>
-            <strong>
-              {lodging?.checkInTime} / {lodging?.checkOutTime}
-            </strong>
+            <span>체크인 / 체크아웃</span>
+            <strong>{lodging?.checkInTime} / {lodging?.checkOutTime}</strong>
           </div>
           <div className="booking-detail-row">
             <span>취소 규정</span>

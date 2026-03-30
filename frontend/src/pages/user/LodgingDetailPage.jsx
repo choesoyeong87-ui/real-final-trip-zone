@@ -7,64 +7,19 @@ import {
   buildPropertyStory,
   buildRoomOptions,
   canWriteLodgingReview,
-  getLodgingDetail,
   getReviewAverage,
 } from "../../features/lodging-detail/lodgingDetailViewModel";
 import { buildGalleryImages, getRoomMeta } from "../../features/lodging-detail/lodgingDetailUtils";
-import { getLodgingReviews, getLodgings } from "../../services/lodgingService";
+import { getLodgingDetailById, getLodgingReviews } from "../../services/lodgingService";
 import { getMyBookings } from "../../services/mypageService";
 
 const sellerContactByLodging = {
-  1: {
-    name: "오션스테이 운영팀",
-    badge: "평균 8분 내 응답",
-    status: "실시간 응답 가능",
-    messages: [
-      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 해운대 오션 스테이입니다. 체크인 시간이나 주차 여부 편하게 물어보세요." },
-      { id: "guest-1", sender: "guest", time: "방금 전", body: "오션뷰 객실은 고층으로 배정 가능한지 궁금해요." },
-      { id: "seller-2", sender: "seller", time: "방금 전", body: "예약 순서대로 배정하지만, 요청사항에 남겨주시면 가능한 범위에서 우선 반영하고 있어요." },
-    ],
-  },
-  2: {
-    name: "제주 포레스트 하우스",
-    badge: "평균 12분 내 응답",
-    status: "실시간 응답 가능",
-    messages: [
-      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 제주 포레스트 하우스입니다. 바비큐, 주차, 체크인 동선 관련 문의를 바로 도와드릴게요." },
-      { id: "guest-1", sender: "guest", time: "방금 전", body: "바비큐 존은 우천 시에도 이용 가능한가요?" },
-      { id: "seller-2", sender: "seller", time: "방금 전", body: "지붕이 있는 공간이 따로 있어서 비 오는 날에도 이용 가능해요. 숯 세트는 당일 오후 5시 전까지 신청해 주세요." },
-    ],
-  },
-  3: {
-    name: "강릉 코스트 라운지",
+  default: {
+    name: "TripZone 호스트",
     badge: "평균 10분 내 응답",
-    status: "실시간 응답 가능",
+    status: "실시간 문의 가능",
     messages: [
-      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 강릉 코스트 라운지입니다. 수영장, 조식, 늦은 체크인 문의를 받고 있어요." },
-    ],
-  },
-  4: {
-    name: "서울 시티 모먼트",
-    badge: "평균 6분 내 응답",
-    status: "실시간 응답 가능",
-    messages: [
-      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 서울 시티 모먼트입니다. 주차와 셀프 체크인 동선을 빠르게 안내해 드릴게요." },
-    ],
-  },
-  5: {
-    name: "여수 선셋 마리나",
-    badge: "평균 11분 내 응답",
-    status: "실시간 응답 가능",
-    messages: [
-      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 여수 선셋 마리나입니다. 테라스, 노을 시간, 인룸 다이닝 문의를 도와드리고 있어요." },
-    ],
-  },
-  6: {
-    name: "경주 헤리티지 한옥",
-    badge: "평균 9분 내 응답",
-    status: "실시간 응답 가능",
-    messages: [
-      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 경주 헤리티지 한옥입니다. 주차, 다도 세트, 늦은 체크인 문의를 남겨 주세요." },
+      { id: "seller-1", sender: "seller", time: "방금 전", body: "안녕하세요. 체크인 시간이나 객실 옵션이 궁금하시면 편하게 문의해 주세요." },
     ],
   },
 };
@@ -72,32 +27,51 @@ const sellerContactByLodging = {
 export default function LodgingDetailPage() {
   const { lodgingId } = useParams();
   const location = useLocation();
-  const lodgings = useMemo(() => getLodgings(), []);
+  const [lodging, setLodging] = useState(null);
   const lodgingReviews = useMemo(() => getLodgingReviews(), []);
   const myBookingRows = useMemo(() => getMyBookings(), []);
-  const lodging = getLodgingDetail(lodgings, lodgingId);
-  const roomOptions = useMemo(() => buildRoomOptions(lodging), [lodging]);
-  const propertyStory = useMemo(() => buildPropertyStory(lodging), [lodging]);
-  const galleryImages = useMemo(() => buildGalleryImages(lodging.image), [lodging.image]);
-  const [selectedRoom, setSelectedRoom] = useState(roomOptions[0]);
-  const [selectedImage, setSelectedImage] = useState(galleryImages[0]);
+  const roomOptions = useMemo(() => (lodging ? buildRoomOptions(lodging) : []), [lodging]);
+  const propertyStory = useMemo(() => (lodging ? buildPropertyStory(lodging) : []), [lodging]);
+  const galleryImages = useMemo(() => buildGalleryImages(lodging?.image ?? ""), [lodging?.image]);
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedImage, setSelectedImage] = useState("");
   const [wishlisted, setWishlisted] = useState(false);
   const [shareLabel, setShareLabel] = useState("공유하기");
   const [isInquiryOpen, setIsInquiryOpen] = useState(false);
   const [chatDraft, setChatDraft] = useState("");
   const [reviewDraft, setReviewDraft] = useState({ score: 5, body: "", images: [] });
   const [reviews, setReviews] = useState(lodgingReviews);
-  const sellerContact = sellerContactByLodging[lodging.id] ?? sellerContactByLodging[1];
+  const sellerContact = sellerContactByLodging[lodging?.id] ?? sellerContactByLodging.default;
   const [chatMessages, setChatMessages] = useState(sellerContact.messages);
   const reviewAverage = useMemo(() => getReviewAverage(reviews), [reviews]);
   const reviewSectionRef = useRef(null);
   const inquiryThreadRef = useRef(null);
   const authSession = readAuthSession();
-  const roomBaseMeta = getRoomMeta(selectedRoom.name);
+  const roomBaseMeta = getRoomMeta(selectedRoom?.name ?? "");
   const canWriteReview = useMemo(
-    () => canWriteLodgingReview(authSession, myBookingRows, lodging.id),
-    [authSession, lodging.id, myBookingRows],
+    () => canWriteLodgingReview(authSession, myBookingRows, lodging?.id ?? 0),
+    [authSession, lodging?.id, myBookingRows],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLodging() {
+      try {
+        const nextLodging = await getLodgingDetailById(lodgingId);
+        if (cancelled) return;
+        setLodging(nextLodging);
+      } catch (error) {
+        console.error("Failed to load lodging detail.", error);
+      }
+    }
+
+    loadLodging();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lodgingId]);
 
   useEffect(() => {
     if (location.hash !== "#reviews") return;
@@ -111,6 +85,16 @@ export default function LodgingDetailPage() {
   useEffect(() => {
     setChatMessages(sellerContact.messages);
   }, [sellerContact]);
+
+  useEffect(() => {
+    if (!roomOptions.length) return;
+    setSelectedRoom(roomOptions[0]);
+  }, [roomOptions]);
+
+  useEffect(() => {
+    if (!galleryImages.length) return;
+    setSelectedImage(galleryImages[0]);
+  }, [galleryImages]);
 
   useEffect(() => {
     if (!isInquiryOpen) return undefined;
@@ -133,6 +117,7 @@ export default function LodgingDetailPage() {
   }, [isInquiryOpen, chatMessages]);
 
   const handleShare = async () => {
+    if (!lodging) return;
     const targetUrl = `${window.location.origin}/lodgings/${lodging.id}`;
     try {
       if (navigator.clipboard?.writeText) {
@@ -151,7 +136,7 @@ export default function LodgingDetailPage() {
     if (!body) return;
 
     const nextReview = {
-      author: "내 후기",
+      author: "TripZone 사용자",
       score: reviewDraft.score.toFixed(1),
       stay: "방금 작성",
       body,
@@ -178,10 +163,21 @@ export default function LodgingDetailPage() {
     setChatMessages((current) => [
       ...current,
       { id: `guest-${Date.now()}`, sender: "guest", time: "방금 전", body },
-      { id: `seller-${Date.now() + 1}`, sender: "seller", time: "곧 답변 예정", body: "문의 남겨주셔서 감사합니다. 운영팀이 확인 후 이 채팅창으로 바로 답변드릴게요." },
+      { id: `seller-${Date.now() + 1}`, sender: "seller", time: "응답 예정", body: "문의 감사합니다. 호스트가 확인 후 답변드릴게요." },
     ]);
     setChatDraft("");
   };
+
+  if (!lodging || !selectedRoom) {
+    return (
+      <div className="container page-stack">
+        <section className="list-empty-state list-empty-state-full">
+          <strong>숙소 상세를 불러오는 중입니다.</strong>
+          <p>백엔드에서 숙소와 객실 정보를 가져오고 있어요.</p>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="container page-stack">
@@ -225,6 +221,7 @@ export default function LodgingDetailPage() {
           </div>
         </div>
       </section>
+
       <div className="detail-gallery-strip">
         {galleryImages.map((image, index) => (
           <button
@@ -237,9 +234,10 @@ export default function LodgingDetailPage() {
           />
         ))}
       </div>
+
       <div className="detail-photo-meta">
         <strong>숙소 사진 {galleryImages.indexOf(selectedImage) + 1}</strong>
-        <span>{selectedRoom.name} 기준 객실/공용 공간 이미지를 먼저 확인하세요.</span>
+        <span>{selectedRoom.name} 기준 이미지와 숙소 전경을 확인해 보세요.</span>
       </div>
 
       <section className="detail-grid">
@@ -297,7 +295,7 @@ export default function LodgingDetailPage() {
                 </ul>
               </div>
               <div className="detail-guide-item">
-                <strong>투숙객 혜택</strong>
+                <strong>추천 포인트</strong>
                 <ul className="detail-guide-bullets">
                   {lodging.highlights.slice(0, 3).map((item) => (
                     <li key={item}>{item}</li>
@@ -309,7 +307,7 @@ export default function LodgingDetailPage() {
                 <ul className="detail-guide-bullets">
                   <li>{lodging.cancellation}</li>
                   <li>{lodging.benefit}</li>
-                  <li>객실별 취소 규정과 포함 혜택을 확인하세요.</li>
+                  <li>예약 단계에서 객실 조건과 취소 정책을 다시 확인해 주세요.</li>
                 </ul>
               </div>
             </div>
@@ -381,11 +379,11 @@ export default function LodgingDetailPage() {
               <textarea
                 value={chatDraft}
                 onChange={(event) => setChatDraft(event.target.value)}
-                placeholder="체크인 시간, 주차, 바비큐, 객실 배정처럼 예약 전 확인할 내용을 남겨보세요."
+                placeholder="체크인 시간, 객실 옵션, 주차 여부처럼 예약 전에 확인하고 싶은 내용을 남겨 보세요."
                 rows={3}
               />
               <div className="lodging-inquiry-form-foot">
-                <span>응답은 이 팝업 안에서 이어집니다.</span>
+                <span>응답은 이 창 안에서 이어집니다.</span>
                 <button type="submit" className="primary-button">
                   보내기
                 </button>

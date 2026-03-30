@@ -1,22 +1,37 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
-import {
-  BOOKING_STATUS_LABELS,
-  filterBookingRows,
-  getBookingTabSummary,
-} from "../../features/mypage/mypageViewModels";
+import { BOOKING_STATUS_LABELS, filterBookingRows, getBookingTabSummary } from "../../features/mypage/mypageViewModels";
 import { getLodgings } from "../../services/lodgingService";
 import { getMyBookings } from "../../services/mypageService";
 
-const lodgings = getLodgings();
 const myBookingRows = getMyBookings();
-const lodgingMap = Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging]));
 
 export default function MyBookingsPage() {
   const [tab, setTab] = useState("upcoming");
+  const [lodgingMap, setLodgingMap] = useState({});
   const { upcomingCount, completedCount } = getBookingTabSummary(myBookingRows);
   const filteredRows = filterBookingRows(myBookingRows, tab);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLodgings() {
+      try {
+        const lodgings = await getLodgings();
+        if (cancelled) return;
+        setLodgingMap(Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging])));
+      } catch (error) {
+        console.error("Failed to load lodging map for bookings.", error);
+      }
+    }
+
+    loadLodgings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <MyPageLayout>
@@ -43,24 +58,16 @@ export default function MyBookingsPage() {
         </div>
         <div className="payment-sheet-links booking-controls">
           <div className="booking-segmented-tabs" role="tablist" aria-label="예약 상태">
-            <button
-              type="button"
-              className={`booking-segmented-tab${tab === "upcoming" ? " is-active" : ""}`}
-              onClick={() => setTab("upcoming")}
-            >
+            <button type="button" className={`booking-segmented-tab${tab === "upcoming" ? " is-active" : ""}`} onClick={() => setTab("upcoming")}>
               예약중
             </button>
-            <button
-              type="button"
-              className={`booking-segmented-tab${tab === "completed" ? " is-active" : ""}`}
-              onClick={() => setTab("completed")}
-            >
+            <button type="button" className={`booking-segmented-tab${tab === "completed" ? " is-active" : ""}`} onClick={() => setTab("completed")}>
               이용 완료
             </button>
           </div>
         </div>
         <div className="mypage-subsection-head">
-          <strong>{tab === "upcoming" ? "예정된 여행" : "이용완료 및 예약취소"}</strong>
+          <strong>{tab === "upcoming" ? "예정된 여행" : "이용완료 및 취소 이력"}</strong>
           <span>{tab === "upcoming" ? `예약중 ${upcomingCount}건` : `이용 완료 ${completedCount}건`}</span>
         </div>
         <div className="booking-list-rows booking-list-rows--flush">
@@ -102,8 +109,8 @@ export default function MyBookingsPage() {
           ))}
           {!filteredRows.length ? (
             <div className="my-empty-panel">
-              <strong>{tab === "upcoming" ? "예정된 여행이 없습니다." : "이용완료 내역이 없습니다."}</strong>
-              <p>{tab === "upcoming" ? "지금 새로운 예약을 진행해보세요." : "숙박 완료 후 여기에 이용 기록이 표시됩니다."}</p>
+              <strong>{tab === "upcoming" ? "예정된 여행이 없습니다." : "이용완료 이력이 없습니다."}</strong>
+              <p>{tab === "upcoming" ? "지금 새로운 예약을 진행해 보세요." : "숙박 완료 후 여기에 이용 기록이 표시됩니다."}</p>
               {tab === "upcoming" ? (
                 <Link className="primary-button my-empty-button" to="/lodgings">
                   여행지 찾아보기

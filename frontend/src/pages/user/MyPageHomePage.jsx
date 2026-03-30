@@ -7,14 +7,17 @@ import {
   paymentHistoryRows,
   wishlistRows,
 } from "../../data/mypageData";
+import { readAuthSession } from "../../features/auth/authSession";
 import { getMyCoupons } from "../../services/mypageService";
 
 export default function MyPageHomePage() {
+  const session = readAuthSession();
   const coupons = getMyCoupons();
   const upcomingCount = myBookingRows.filter((item) => item.status !== "COMPLETED").length;
   const availableCouponCount = coupons.filter((item) => item.status === "사용 가능").length;
   const paidCount = paymentHistoryRows.filter((item) => item.status === "PAID").length;
   const nextTrip = myBookingRows.find((item) => item.status !== "COMPLETED") ?? myBookingRows[0];
+  const profileName = session?.name ?? myProfileSummary.name;
 
   const overviewItems = [
     { label: "예약중", value: `${upcomingCount}건`, href: "/my/bookings" },
@@ -30,7 +33,7 @@ export default function MyPageHomePage() {
           <Link to="/my/membership" className="my-home-topline my-home-topline-link">
             <div className="my-home-topline-copy">
               <span className="my-home-label">MY PAGE</span>
-              <strong>{myProfileSummary.name}</strong>
+              <strong>{profileName}</strong>
               <p>{myProfileSummary.gradeHint}</p>
             </div>
             <div className="my-home-topline-meta">

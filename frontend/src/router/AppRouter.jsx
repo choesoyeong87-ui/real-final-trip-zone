@@ -5,6 +5,7 @@ import DocsPage from "../pages/common/DocsPage";
 import RolesPage from "../pages/common/RolesPage";
 import LoginPage from "../pages/common/LoginPage";
 import SignupPage from "../pages/common/SignupPage";
+import AuthCallbackPage from "../pages/common/AuthCallbackPage";
 import FindIdPage from "../pages/common/FindIdPage";
 import FindPasswordPage from "../pages/common/FindPasswordPage";
 import EventsPage from "../pages/common/EventsPage";
@@ -51,6 +52,8 @@ export default function AppRouter() {
           <Route path="/roles" element={<RolesPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/auth/kakao/callback" element={<AuthCallbackPage />} />
+          <Route path="/auth/naver/callback" element={<AuthCallbackPage />} />
           <Route path="/find-id" element={<FindIdPage />} />
           <Route path="/find-password" element={<FindPasswordPage />} />
           <Route path="/events" element={<EventsPage />} />

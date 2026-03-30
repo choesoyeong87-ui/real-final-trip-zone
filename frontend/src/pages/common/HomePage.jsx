@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  destinationStats,
-  homeSearchDefaults,
-  promoBanners,
-} from "../../data/homeData";
+import { destinationStats, homeSearchDefaults, promoBanners } from "../../data/homeData";
 import { DateRangePopover, GuestPopover, SuggestionsPanel } from "../../features/home/HomeSearchPanels";
 import { HomeCollectionSection, HomePromoSection } from "../../features/home/HomeSections";
 import { SEARCH_TABS, SUGGESTION_ICON } from "../../features/home/homeConstants";
@@ -32,20 +28,49 @@ export default function HomePage() {
   const [activeSuggest, setActiveSuggest] = useState(0);
   const [activeTab, setActiveTab] = useState("domestic");
   const [visibleMonth, setVisibleMonth] = useState(parseISO(homeSearchDefaults.checkIn) ?? new Date());
+  const [lodgings, setLodgings] = useState([]);
+  const [lodgingCollections, setLodgingCollections] = useState([]);
+  const [searchSuggestionItems, setSearchSuggestionItems] = useState([]);
   const currentTab = SEARCH_TABS.find((tab) => tab.key === activeTab) ?? SEARCH_TABS[0];
-  const lodgings = useMemo(() => getLodgings(), []);
-  const lodgingCollections = useMemo(() => getLodgingCollections(), []);
-  const searchSuggestionItems = useMemo(() => getSearchSuggestionItems(), []);
 
   const allSuggestionItems = useMemo(
     () => buildHomeSuggestionItems(lodgings, searchSuggestionItems),
     [lodgings, searchSuggestionItems],
   );
-
-  const filteredSuggestions = useMemo(() => filterHomeSuggestions(allSuggestionItems, searchForm.keyword), [allSuggestionItems, searchForm.keyword]);
+  const filteredSuggestions = useMemo(
+    () => filterHomeSuggestions(allSuggestionItems, searchForm.keyword),
+    [allSuggestionItems, searchForm.keyword],
+  );
 
   useEffect(() => {
     setRecentSearches(readRecentSearches());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadHomeData() {
+      try {
+        const [nextLodgings, nextCollections, nextSuggestions] = await Promise.all([
+          getLodgings(),
+          getLodgingCollections(),
+          getSearchSuggestionItems(),
+        ]);
+
+        if (cancelled) return;
+        setLodgings(nextLodgings);
+        setLodgingCollections(nextCollections);
+        setSearchSuggestionItems(nextSuggestions);
+      } catch (error) {
+        console.error("Failed to load home lodging data.", error);
+      }
+    }
+
+    loadHomeData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -135,13 +160,13 @@ export default function HomePage() {
         <div className="home-hero-inner">
           <div className="home-hero-copy">
             <div className="home-hero-brand">국내 숙소 예약</div>
-            <h1>오늘 갈 곳을 빠르게 정하고 바로 예약하세요</h1>
-<div className="hero-actions">
+            <h1>오늘 가고 싶은 곳을 고르고 바로 예약해 보세요.</h1>
+            <div className="hero-actions">
               <Link className="primary-button" to="/lodgings">
                 숙소 검색하기
               </Link>
               <Link className="secondary-button hero-secondary" to="/events">
-                오늘 특가 보기
+                오늘의 혜택 보기
               </Link>
             </div>
             <div className="hero-stat-row">
@@ -154,11 +179,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <form
-            ref={searchShellRef}
-            className="search-panel search-panel-classic"
-            onSubmit={handleSearchSubmit}
-          >
+          <form ref={searchShellRef} className="search-panel search-panel-classic" onSubmit={handleSearchSubmit}>
             <div className="search-classic-stack">
               <label
                 ref={keywordRef}
@@ -253,13 +274,21 @@ export default function HomePage() {
       <div className="container home-content">
         <HomePromoSection promoBanners={promoBanners} />
 
-        {lodgingCollections.map((collection) => (
-          <HomeCollectionSection
-            key={collection.title}
-            collection={collection}
+        {!lodgingCollections.length ? (
+          <section className="home-section">
+            <div className="home-section-head">
+              <h2>추천 숙소를 불러오는 중입니다.</h2>
+            </div>
+          </section>
+        ) : (
+          lodgingCollections.map((collection) => (
+            <HomeCollectionSection
+              key={collection.title}
+              collection={collection}
               cards={buildCollectionCards(collection, lodgings)}
-          />
-        ))}
+            />
+          ))
+        )}
       </div>
     </div>
   );

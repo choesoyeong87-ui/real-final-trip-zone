@@ -2,18 +2,20 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authProviders, defaultLoginForm, demoLoginAccounts } from "../../data/authData";
 import {
-  createDefaultLocalSession,
-  createDemoAccountSession,
-  createSocialSession,
-  findDemoLoginAccount,
   getAuthProviderMark,
+  getKakaoAuthUrl,
+  getNaverAuthUrl,
   getSelectedAuthProvider,
+  loginWithCredentials,
+  loginWithGooglePopup,
   loginWithSessionPayload,
 } from "../../features/auth/authViewModels";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(defaultLoginForm);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const selectedProvider = getSelectedAuthProvider(form.provider);
   const canSubmit = form.email.trim() && form.password.trim();
 
@@ -21,17 +23,41 @@ export default function LoginPage() {
     navigate(loginWithSessionPayload(payload));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!canSubmit) return;
-    const matchedDemoAccount = findDemoLoginAccount(form.email, form.password);
+    if (!canSubmit || isSubmitting) return;
 
-    if (matchedDemoAccount) {
-      commitSession(createDemoAccountSession(matchedDemoAccount, form.provider));
-      return;
+    setErrorMessage("");
+    setIsSubmitting(true);
+    try {
+      const session = await loginWithCredentials(form);
+      commitSession(session);
+    } catch (error) {
+      setErrorMessage(error.message || "로그인에 실패했습니다.");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
-    commitSession(createDefaultLocalSession(form));
+  const handleSocialLogin = async (providerKey) => {
+    setErrorMessage("");
+
+    try {
+      if (providerKey === "KAKAO") {
+        window.location.href = getKakaoAuthUrl();
+        return;
+      }
+
+      if (providerKey === "NAVER") {
+        window.location.href = getNaverAuthUrl();
+        return;
+      }
+
+      const session = await loginWithGooglePopup();
+      commitSession(session);
+    } catch (error) {
+      setErrorMessage(error.message || "소셜 로그인에 실패했습니다.");
+    }
   };
 
   return (
@@ -47,12 +73,12 @@ export default function LoginPage() {
           >
             <div className="auth-copy-overlay">
               <p className="eyebrow">로그인</p>
-              <h1>예약 내역과 혜택을 바로 이어서 확인</h1>
-              <p>이메일 로그인과 간편 로그인을 같은 화면에서 빠르게 선택할 수 있습니다.</p>
+              <h1>예약 내역과 찜한 숙소를 바로 확인하세요.</h1>
+              <p>이메일 로그인과 소셜 로그인을 같은 화면에서 빠르게 이어갈 수 있습니다.</p>
               <div className="auth-copy-points">
                 <span>예약 내역 확인</span>
                 <span>찜한 숙소 이어보기</span>
-                <span>쿠폰/마일리지 확인</span>
+                <span>쿠폰과 마일리지 확인</span>
               </div>
             </div>
           </div>
@@ -61,7 +87,7 @@ export default function LoginPage() {
         <form className="auth-panel auth-panel-strong" onSubmit={handleSubmit}>
           <div className="auth-panel-header">
             <strong>이메일 로그인</strong>
-            <span>회원 정보로 바로 로그인</span>
+            <span>회원 정보로 바로 로그인하세요.</span>
           </div>
           <label className="auth-field">
             <span>이메일</span>
@@ -104,8 +130,10 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <button className={`primary-button booking-card-button${canSubmit ? "" : " is-disabled"}`} type="submit">
-            로그인
+          {errorMessage ? <p className="auth-error-message">{errorMessage}</p> : null}
+
+          <button className={`primary-button booking-card-button${canSubmit ? "" : " is-disabled"}`} type="submit" disabled={!canSubmit || isSubmitting}>
+            {isSubmitting ? "로그인 중..." : "로그인"}
           </button>
 
           <div className="auth-divider">
@@ -120,9 +148,7 @@ export default function LoginPage() {
                   key={provider.key}
                   type="button"
                   className={`auth-provider-line auth-provider-${provider.key.toLowerCase()}${selectedProvider.key === provider.key ? " is-active" : ""}`}
-                  onClick={() => {
-                    commitSession(createSocialSession(provider));
-                  }}
+                  onClick={() => handleSocialLogin(provider.key)}
                 >
                   <span className="auth-provider-mark" aria-hidden="true">
                     {getAuthProviderMark(provider.key)}
@@ -142,10 +168,10 @@ export default function LoginPage() {
 
         <aside className="auth-demo-panel auth-demo-panel-side">
           <div className="auth-demo-head">
-            <strong>시현 계정</strong>
-            <span>배포 전 제거 예정</span>
+            <strong>테스트 계정</strong>
+            <span>백엔드 연결 전 입력용 예시</span>
           </div>
-          <p className="auth-demo-copy">개발 확인용 계정이다. 클릭하면 로그인 폼에 자동 입력된다.</p>
+          <p className="auth-demo-copy">클릭하면 로그인 폼에 이메일과 비밀번호를 채워 넣습니다.</p>
           <div className="auth-demo-list">
             {demoLoginAccounts.map((account) => (
               <button
