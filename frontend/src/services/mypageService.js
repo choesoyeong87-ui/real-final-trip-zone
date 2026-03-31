@@ -196,6 +196,8 @@ export function createInquiryThread(payload) {
     title: payload.title,
     inquiryType: payload.type,
     content: payload.body,
+    bookingNo: payload.bookingNo?.trim() || null,
+    lodging: payload.lodging?.trim() || null,
   });
 }
 
@@ -204,6 +206,8 @@ export function updateInquiryThread(threadId, payload) {
     title: payload.title,
     inquiryType: payload.type,
     content: payload.body,
+    bookingNo: payload.bookingNo?.trim() || null,
+    lodging: payload.lodging?.trim() || null,
   });
 }
 

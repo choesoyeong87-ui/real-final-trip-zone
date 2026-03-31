@@ -16,7 +16,7 @@ export default function AdminReviewsPage() {
   const [selectedKey, setSelectedKey] = useState(null);
   const [notice, setNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const selected = rows.find((row) => `${row.lodging}-${row.author}` === selectedKey) ?? rows[0];
+  const selected = rows.find((row) => String(row.id) === String(selectedKey)) ?? rows[0];
 
   useEffect(() => {
     let cancelled = false;
@@ -27,7 +27,7 @@ export default function AdminReviewsPage() {
         const nextRows = await getAdminReviews();
         if (cancelled) return;
         setRows(nextRows);
-        setSelectedKey(nextRows[0] ? `${nextRows[0].lodging}-${nextRows[0].author}` : null);
+        setSelectedKey(nextRows[0]?.id ?? null);
       } catch (error) {
         if (cancelled) return;
         console.error("Failed to load admin reviews.", error);
@@ -49,7 +49,9 @@ export default function AdminReviewsPage() {
   const updateStatus = async (nextStatus) => {
     if (!selected) return;
     try {
-      await updateAdminReviewStatus(selectedKey, nextStatus);
+      const updated = await updateAdminReviewStatus(selected.id, nextStatus);
+      setRows((current) => current.map((row) => (row.id === updated.id ? updated : row)));
+      setNotice(`리뷰 상태를 ${nextStatus === "VISIBLE" ? "노출" : "숨김"}으로 변경했습니다.`);
     } catch (error) {
       setNotice(error.message);
     }
@@ -72,9 +74,9 @@ export default function AdminReviewsPage() {
           <DataTable
             columns={columns}
             rows={rows}
-            getRowKey={(row) => `${row.lodging}-${row.author}`}
+            getRowKey={(row) => row.id}
             selectedKey={selectedKey}
-            onRowClick={(row) => setSelectedKey(`${row.lodging}-${row.author}`)}
+            onRowClick={(row) => setSelectedKey(row.id)}
           />
         </section>
 

@@ -10,7 +10,7 @@ import {
   getReviewAverage,
 } from "../../features/lodging-detail/lodgingDetailViewModel";
 import { buildGalleryImages, getRoomMeta } from "../../features/lodging-detail/lodgingDetailUtils";
-import { createLodgingReview, getLodgingDetailById, getLodgingReviews } from "../../services/lodgingService";
+import { createLodgingReview, getLodgingDetailById, getLodgingReviews, uploadLodgingReviewImages } from "../../services/lodgingService";
 import { getMyBookings } from "../../services/mypageService";
 import {
   findMyInquiryRoomByLodgingId,
@@ -76,6 +76,7 @@ export default function LodgingDetailPage() {
   const [reviewDraft, setReviewDraft] = useState({ score: 5, body: "", images: [] });
   const [reviews, setReviews] = useState([]);
   const [isReviewLoading, setIsReviewLoading] = useState(true);
+  const [isReviewUploading, setIsReviewUploading] = useState(false);
   const [reviewNotice, setReviewNotice] = useState("");
   const sellerContact = sellerContactByLodging[lodging?.id] ?? sellerContactByLodging[1];
   const [chatMessages, setChatMessages] = useState([]);
@@ -282,13 +283,18 @@ export default function LodgingDetailPage() {
       setReviewNotice("숙박 완료 내역이 있어야 리뷰를 등록할 수 있습니다.");
       return;
     }
+    if (isReviewUploading) {
+      setReviewNotice("리뷰 사진 업로드가 끝난 뒤 등록할 수 있습니다.");
+      return;
+    }
 
     try {
       const nextReview = await createLodgingReview({
-        bookingNo: completedBooking.bookingId,
+        bookingNo: completedBooking.bookingNo,
         lodgingId: lodging.id,
         score: reviewDraft.score,
         body,
+        images: reviewDraft.images,
       });
 
       setReviews((current) => [nextReview, ...current]);
@@ -301,10 +307,26 @@ export default function LodgingDetailPage() {
   };
 
   const handleReviewImages = (event) => {
+    const input = event.target;
     const files = Array.from(event.target.files ?? []);
     if (!files.length) return;
-    setReviewNotice("리뷰 이미지는 백엔드 업로드 보강 후 연결합니다.");
-    setReviewDraft((current) => ({ ...current, images: [] }));
+    setIsReviewUploading(true);
+    setReviewNotice("리뷰 사진을 업로드하는 중입니다.");
+
+    uploadLodgingReviewImages(files)
+      .then((imageUrls) => {
+        setReviewDraft((current) => ({ ...current, images: imageUrls }));
+        setReviewNotice(imageUrls.length ? `사진 ${imageUrls.length}장을 첨부했습니다.` : "첨부 가능한 이미지가 없습니다.");
+      })
+      .catch((error) => {
+        console.error("Failed to upload review images.", error);
+        setReviewDraft((current) => ({ ...current, images: [] }));
+        setReviewNotice("리뷰 사진 업로드에 실패했습니다.");
+      })
+      .finally(() => {
+        setIsReviewUploading(false);
+        input.value = "";
+      });
   };
 
   const handleInquirySubmit = async (event) => {

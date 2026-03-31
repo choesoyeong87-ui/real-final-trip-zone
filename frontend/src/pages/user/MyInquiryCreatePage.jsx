@@ -44,7 +44,7 @@ export default function MyInquiryCreatePage() {
           </div>
         </div>
         <div className="mypage-guide-banner">
-          <span>숙소 문의는 상세 페이지 숙소문의에서 처리합니다. 예약번호와 숙소명 저장은 백엔드 보강 후 연결합니다.</span>
+          <span>운영 문의에 필요한 경우 예약번호와 관련 숙소를 함께 남길 수 있습니다.</span>
         </div>
         {error ? <div className="my-empty-inline">{error}</div> : null}
         <div className="inquiry-form-grid">
@@ -70,11 +70,11 @@ export default function MyInquiryCreatePage() {
           </div>
           <label className="field-block">
             <span>관련 예약번호</span>
-            <input value={form.bookingNo} onChange={(e) => handleChange("bookingNo", e.target.value)} placeholder="백엔드 보강 후 연결" disabled />
+            <input value={form.bookingNo} onChange={(e) => handleChange("bookingNo", e.target.value)} placeholder="선택 입력" />
           </label>
           <label className="field-block inquiry-field-full">
             <span>관련 숙소</span>
-            <input value={form.lodging} onChange={(e) => handleChange("lodging", e.target.value)} placeholder="백엔드 보강 후 연결" disabled />
+            <input value={form.lodging} onChange={(e) => handleChange("lodging", e.target.value)} placeholder="선택 입력" />
           </label>
           <label className="field-block inquiry-field-full">
             <span>문의 내용</span>

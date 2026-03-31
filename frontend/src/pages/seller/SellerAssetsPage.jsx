@@ -15,7 +15,7 @@ export default function SellerAssetsPage() {
   const [selectedKey, setSelectedKey] = useState(null);
   const [notice, setNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const selected = rows.find((row) => `${row.lodging}-${row.type}` === selectedKey) ?? rows[0];
+  const selected = rows.find((row) => row.id === selectedKey) ?? rows[0];
 
   useEffect(() => {
     let cancelled = false;
@@ -26,7 +26,7 @@ export default function SellerAssetsPage() {
         const nextRows = await getSellerAssets();
         if (cancelled) return;
         setRows(nextRows);
-        setSelectedKey(nextRows[0] ? `${nextRows[0].lodging}-${nextRows[0].type}` : null);
+        setSelectedKey(nextRows[0]?.id ?? null);
       } catch (error) {
         if (cancelled) return;
         console.error("Failed to load seller assets.", error);
@@ -48,7 +48,11 @@ export default function SellerAssetsPage() {
   const updateSelected = async (patch) => {
     if (!selected) return;
     try {
-      await updateSellerAsset(selectedKey, patch);
+      const updated = await updateSellerAsset(selected.id, patch);
+      const nextRows = await getSellerAssets();
+      setRows(nextRows);
+      setSelectedKey(updated?.id ?? nextRows[0]?.id ?? null);
+      setNotice(patch.mode === "PRIMARY" ? "대표 이미지를 변경했습니다." : "이미지를 마지막 순서로 이동했습니다.");
     } catch (error) {
       setNotice(error.message);
     }
@@ -60,7 +64,7 @@ export default function SellerAssetsPage() {
         <div className="dash-page-header-copy">
           <p className="eyebrow">이미지 운영</p>
           <h1>숙소 이미지 관리</h1>
-          <p>대표 {rows.filter((r) => r.type === "대표 이미지").length}개 · 검수중 {rows.filter((r) => r.status === "검수중").length}개</p>
+          <p>대표 {rows.filter((r) => r.type === "대표 이미지").length}개 · 일반 {rows.filter((r) => r.type === "일반 이미지").length}개</p>
           {notice ? <p>{notice}</p> : null}
         </div>
       </div>
@@ -71,9 +75,9 @@ export default function SellerAssetsPage() {
           <DataTable
             columns={columns}
             rows={rows}
-            getRowKey={(row) => `${row.lodging}-${row.type}`}
+            getRowKey={(row) => row.id}
             selectedKey={selectedKey}
-            onRowClick={(row) => setSelectedKey(`${row.lodging}-${row.type}`)}
+            onRowClick={(row) => setSelectedKey(row.id)}
           />
         </section>
 
@@ -81,8 +85,8 @@ export default function SellerAssetsPage() {
           <h3>{selected?.lodging ?? "—"}</h3>
           <p>{selected?.type} · 순서 {selected?.order}</p>
           <div className="dash-action-grid">
-            <button type="button" className="dash-action-btn is-primary" onClick={() => updateSelected({ status: "노출중" })} disabled={!selected}>노출</button>
-            <button type="button" className="dash-action-btn is-danger" onClick={() => updateSelected({ status: "검수중" })} disabled={!selected}>검수중</button>
+            <button type="button" className="dash-action-btn is-primary" onClick={() => updateSelected({ mode: "PRIMARY" })} disabled={!selected || !selected.fileName}>대표 지정</button>
+            <button type="button" className="dash-action-btn is-danger" onClick={() => updateSelected({ mode: "LAST" })} disabled={!selected || !selected.fileName}>뒤로 이동</button>
           </div>
         </div>
       </div>

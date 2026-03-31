@@ -26,15 +26,8 @@ export const membershipBenefitTiers = [
     highlights: ["월간 전용 쿠폰팩", "인기 숙소 얼리 액세스", "결제 혜택 우선 노출"],
   },
   {
-    grade: "Platinum",
+    grade: "Black",
     summary: "상위 등급 회원 전용 혜택",
     highlights: ["시즌 프로모션 선오픈", "프리미엄 객실 특가", "전용 CS 우선 응답"],
   },
-];
-
-export const membershipMilestones = [
-  { label: "현재 등급", value: "실제 API 연동 중" },
-  { label: "다음 등급까지", value: "등급 조건 보강 대기" },
-  { label: "최근 3개월 예약", value: "활동 데이터 연동 중" },
-  { label: "누적 마일리지", value: "마일리지 화면 기준" },
 ];

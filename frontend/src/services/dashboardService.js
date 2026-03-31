@@ -164,20 +164,24 @@ function mapSellerAssetRows(lodging) {
     return [
       {
         id: `${lodging.id}-placeholder`,
+        lodgingId: lodging.id,
         lodging: lodging.name,
         type: "대표 이미지",
         order: "1",
         status: "미등록",
+        fileName: null,
       },
     ];
   }
 
-  return images.map((_, index) => ({
-    id: `${lodging.id}-${index}`,
+  return images.map((fileName, index) => ({
+    id: `${lodging.id}-${fileName}`,
+    lodgingId: lodging.id,
     lodging: lodging.name,
     type: index === 0 ? "대표 이미지" : "일반 이미지",
     order: String(index + 1),
-    status: "노출중",
+    status: index === 0 ? "대표 노출" : "일반 노출",
+    fileName,
   }));
 }
 
@@ -288,29 +292,31 @@ export async function updateAdminInquiryStatus(inquiryNo, nextStatus) {
 }
 
 export async function getAdminReviews() {
-  const lodgings = await get("/api/lodgings/list");
-  const reviewGroups = await Promise.all(
-    lodgings.map(async (lodging) => ({
-      lodging,
-      reviews: await get(`/api/reviews/lodgings/${lodging.lodgingNo}`).catch(() => []),
-    })),
-  );
-
-  return reviewGroups.flatMap(({ lodging, reviews }) =>
-    reviews.map((review) => ({
-      id: review.reviewNo,
-      lodging: lodging.lodgingName ?? `숙소 ${lodging.lodgingNo}`,
-      author: `회원 ${review.userNo ?? "-"}`,
-      score: Number(review.rating ?? 0).toFixed(1),
-      status: "VISIBLE",
-      report: "0건",
-      summary: review.content ?? "",
-    })),
-  );
+  const rows = await get("/api/reviews/admin");
+  return rows.map((review) => ({
+    id: review.reviewNo,
+    lodging: review.lodgingName ?? `숙소 ${review.lodgingNo}`,
+    author: review.userName ?? `회원 ${review.userNo ?? "-"}`,
+    score: Number(review.rating ?? 0).toFixed(1),
+    status: review.status ?? "VISIBLE",
+    report: "0건",
+    summary: review.content ?? "",
+  }));
 }
 
-export async function updateAdminReviewStatus() {
-  throw new Error("리뷰 운영 상태 변경 API가 없어 읽기 전용으로 유지합니다.");
+export async function updateAdminReviewStatus(reviewNo, nextStatus) {
+  const response = await patch(`/api/reviews/${reviewNo}/visibility`, {
+    status: nextStatus,
+  });
+  return {
+    id: response.reviewNo,
+    lodging: response.lodgingName ?? `숙소 ${response.lodgingNo}`,
+    author: response.userName ?? `회원 ${response.userNo ?? "-"}`,
+    score: Number(response.rating ?? 0).toFixed(1),
+    status: response.status ?? nextStatus,
+    report: "0건",
+    summary: response.content ?? "",
+  };
 }
 
 export function getAdminAuditLogs() {
@@ -368,8 +374,40 @@ export async function getSellerAssets() {
   return lodgings.flatMap(mapSellerAssetRows);
 }
 
-export async function updateSellerAsset() {
-  throw new Error("이미지 운영 수정 API가 없어 읽기 전용으로 유지합니다.");
+export async function updateSellerAsset(assetId, patchData) {
+  const currentAssets = await getSellerAssets();
+  const target = currentAssets.find((item) => item.id === assetId);
+
+  if (!target?.fileName) {
+    throw new Error("조정할 이미지가 없습니다.");
+  }
+
+  const lodging = await get(`/api/lodgings/${target.lodgingId}`);
+  const uploadFileNames = [...(lodging.uploadFileNames ?? [])];
+  const currentIndex = uploadFileNames.indexOf(target.fileName);
+
+  if (currentIndex < 0) {
+    throw new Error("이미지 파일 정보를 찾을 수 없습니다.");
+  }
+
+  uploadFileNames.splice(currentIndex, 1);
+
+  if (patchData.mode === "PRIMARY") {
+    uploadFileNames.unshift(target.fileName);
+  } else if (patchData.mode === "LAST") {
+    uploadFileNames.push(target.fileName);
+  } else {
+    throw new Error("지원하지 않는 이미지 작업입니다.");
+  }
+
+  await patch(`/api/lodgings/${target.lodgingId}`, (() => {
+    const formData = new FormData();
+    uploadFileNames.forEach((fileName) => formData.append("uploadFileNames", fileName));
+    return formData;
+  })());
+
+  const refreshedAssets = await getSellerAssets();
+  return refreshedAssets.find((item) => item.fileName === target.fileName && item.lodgingId === target.lodgingId) ?? null;
 }
 
 export function getSellerApplicationTemplate() {

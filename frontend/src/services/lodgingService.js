@@ -1,5 +1,5 @@
 import { lodgings as fallbackLodgings } from "../data/lodgingData";
-import { get, post } from "../lib/appClient";
+import { get, getApiBaseUrl, post } from "../lib/appClient";
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1400&q=80";
@@ -54,6 +54,15 @@ function buildImageUrl(fileName) {
   if (!fileName) return FALLBACK_IMAGE;
   if (/^https?:\/\//i.test(fileName)) return fileName;
   return `http://100.96.110.114:8080/api/lodgings/view/${encodeURIComponent(fileName)}`;
+}
+
+function buildReviewImageUrl(value) {
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith("/api/")) {
+    return `${getApiBaseUrl()}${value}`;
+  }
+  return `${getApiBaseUrl()}/api/view/${encodeURIComponent(value)}`;
 }
 
 function mapRoom(roomDTO, lodgingDTO) {
@@ -217,7 +226,7 @@ function mapReviewDto(dto) {
     score: Number(dto.rating ?? 0).toFixed(1),
     stay: formatReviewTime(dto.regDate),
     body: dto.content ?? "",
-    images: dto.imageUrls ?? [],
+    images: (dto.imageUrls ?? []).map(buildReviewImageUrl),
   };
 }
 
@@ -226,13 +235,23 @@ export async function getLodgingReviews(lodgingId) {
   return rows.map(mapReviewDto);
 }
 
+export async function uploadLodgingReviewImages(files) {
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+
+  const response = await post("/api/reviews/images", formData);
+  return (response.imageUrls ?? []).map(buildReviewImageUrl);
+}
+
 export async function createLodgingReview(payload) {
   const response = await post("/api/reviews", {
     bookingNo: payload.bookingNo,
     lodgingNo: payload.lodgingId,
     rating: Math.round(payload.score),
     content: payload.body,
-    imageUrls: [],
+    imageUrls: payload.images ?? [],
   });
 
   return mapReviewDto(response);

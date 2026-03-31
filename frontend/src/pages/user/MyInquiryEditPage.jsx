@@ -76,7 +76,7 @@ export default function MyInquiryEditPage() {
           </div>
         </div>
         <div className="mypage-guide-banner">
-          <span>현재는 제목, 유형, 내용만 실제 저장됩니다. 예약번호와 숙소명 연동은 백엔드 보강 후 연결합니다.</span>
+          <span>제목, 유형, 내용과 함께 예약번호 및 관련 숙소 정보도 수정할 수 있습니다.</span>
         </div>
         {error ? <div className="my-empty-inline">{error}</div> : null}
         <div className="inquiry-form-grid">
@@ -102,11 +102,11 @@ export default function MyInquiryEditPage() {
           </div>
           <label className="field-block">
             <span>관련 예약번호</span>
-            <input value={form.bookingNo} onChange={(e) => handleChange("bookingNo", e.target.value)} disabled />
+            <input value={form.bookingNo} onChange={(e) => handleChange("bookingNo", e.target.value)} placeholder="선택 입력" />
           </label>
           <label className="field-block inquiry-field-full">
             <span>관련 숙소</span>
-            <input value={form.lodging} onChange={(e) => handleChange("lodging", e.target.value)} disabled />
+            <input value={form.lodging} onChange={(e) => handleChange("lodging", e.target.value)} placeholder="선택 입력" />
           </label>
           <label className="field-block inquiry-field-full">
             <span>문의 내용</span>
