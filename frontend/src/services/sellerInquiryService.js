@@ -80,12 +80,7 @@ async function ensureInquirySocketClient() {
 }
 
 async function enrichInquiryRooms(rows) {
-  const rooms = await Promise.all(
-    rows.map(async (dto) => {
-      const messages = await getSellerInquiryMessages(dto.inquiryRoomNo);
-      return mapSellerInquiryRoom(dto, messages.at(-1));
-    }),
-  );
+  const rooms = rows.map((dto) => mapSellerInquiryRoom(dto));
 
   return rooms.sort((a, b) => Number(new Date(b.updDate ?? 0)) - Number(new Date(a.updDate ?? 0)));
 }

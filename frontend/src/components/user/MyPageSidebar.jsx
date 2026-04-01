@@ -1,5 +1,8 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { readAuthSession } from "../../features/auth/authSession";
+import { getMyHome } from "../../services/mypageService";
+import { formatMembershipLabel } from "../../features/mypage/mypageViewModels";
 
 const ITEMS = [
   { to: "/my/bookings", label: "예약 내역" },
@@ -14,8 +17,40 @@ const ITEMS = [
 
 export default function MyPageSidebar() {
   const session = readAuthSession();
-  const profileName = session?.name ?? "TripZone 회원";
-  const gradeLabel = session?.role === "ROLE_USER" ? "회원" : "사용자";
+  const [profileSummary, setProfileSummary] = useState(null);
+
+  useEffect(() => {
+    if (session?.role !== "ROLE_USER") {
+      setProfileSummary(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    async function loadProfileSummary() {
+      try {
+        const response = await getMyHome();
+        if (cancelled) return;
+        setProfileSummary(response?.profileSummary ?? null);
+      } catch {
+        if (!cancelled) {
+          setProfileSummary(null);
+        }
+      }
+    }
+
+    loadProfileSummary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.role]);
+
+  const profileName = profileSummary?.name ?? session?.name ?? "TripZone 회원";
+  const gradeLabel =
+    session?.role === "ROLE_USER"
+      ? formatMembershipLabel(profileSummary?.grade)
+      : "사용자";
 
   return (
     <aside className="my-sidebar">

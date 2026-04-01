@@ -530,9 +530,10 @@ button {
 }
 
 .auth-shell-login {
-  grid-template-columns: minmax(360px, 420px) minmax(360px, 480px);
+  grid-template-columns: repeat(2, minmax(360px, 420px));
   justify-content: center;
   align-items: start;
+  gap: 28px;
 }
 
 .auth-demo-panel {
@@ -797,51 +798,59 @@ button {
 
 .auth-provider-line {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
   align-items: center;
-  gap: 12px;
-  min-height: 58px;
-  padding: 0 16px;
-  border: 1px solid rgba(29, 38, 31, 0.08);
-  border-radius: 18px;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
   background: #fff;
-  color: var(--text);
+  color: #3c4043;
   text-align: left;
 }
 
+.auth-provider-line::after {
+  content: "";
+  width: 24px;
+  height: 24px;
+}
+
 .auth-provider-line strong {
-  font-size: 15px;
-  letter-spacing: -0.03em;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  transform: translateX(13px);
 }
 
 .auth-provider-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 900;
+  width: 20px;
+  height: 20px;
+  border-radius: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  background: transparent;
+  transform: translate(-6px, 1px);
 }
 
 .auth-provider-line.auth-provider-kakao .auth-provider-mark {
-  background: #fee500;
-  color: #191919;
+  color: #fee500;
 }
 
 .auth-provider-line.auth-provider-naver .auth-provider-mark {
-  background: #03c75a;
-  color: white;
-}
-
-.auth-provider-line.auth-provider-google .auth-provider-mark {
-  background: #f1f4f7;
-  color: #1f2937;
+  color: #03c75a;
 }
 
 .auth-provider-google-button {
-  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
 }
 
 .google-signin-slot {
@@ -882,7 +891,7 @@ button {
 
 @media (max-width: 1200px) {
   .auth-shell-login {
-    grid-template-columns: minmax(320px, 420px) minmax(320px, 480px);
+    grid-template-columns: repeat(2, minmax(320px, 420px));
   }
 
   .auth-demo-panel-side {

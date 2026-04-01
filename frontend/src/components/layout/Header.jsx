@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { readAuthSession } from "../../features/auth/authSession";
 import { getHeaderRoleLinks, getMembershipLabel, logoutCurrentSession } from "../../features/auth/authViewModels";
+import { formatMembershipLabel } from "../../features/mypage/mypageViewModels";
 import { getMyHome } from "../../services/mypageService";
 
 export default function Header() {
@@ -74,14 +75,14 @@ export default function Header() {
     navigate("/my/membership");
   };
 
-  const membershipLabel = session?.role === "ROLE_USER" ? homeSnapshot?.profileSummary?.grade ?? "회원" : getMembershipLabel(session);
+  const membershipLabel = session?.role === "ROLE_USER" ? formatMembershipLabel(homeSnapshot?.profileSummary?.grade) : getMembershipLabel(session);
   const profileLabel = session?.name ?? homeSnapshot?.profileSummary?.name ?? "TripZone 회원";
   const profileMetaLabel =
     session?.role === "ROLE_ADMIN"
       ? "관리자 대시보드"
       : session?.role === "ROLE_HOST"
         ? "판매자 대시보드"
-        : `${membershipLabel} 회원`;
+        : membershipLabel;
   const roleLinks = getHeaderRoleLinks(session);
   const availableCouponCount = session?.role === "ROLE_USER" ? homeSnapshot?.overview?.availableCouponCount ?? 0 : 0;
   const upcomingBookingCount = session?.role === "ROLE_USER" ? homeSnapshot?.overview?.upcomingBookingCount ?? 0 : 0;

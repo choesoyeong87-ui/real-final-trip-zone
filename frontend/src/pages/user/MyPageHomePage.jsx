@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
 import { myPageSections } from "../../data/mypageData";
+import { formatMembershipLabel } from "../../features/mypage/mypageViewModels";
 import { getMyBookings, getMyHome } from "../../services/mypageService";
 
 const EMPTY_PROFILE_SUMMARY = {
@@ -109,7 +110,7 @@ export default function MyPageHomePage() {
             </div>
             <div className="my-home-topline-meta">
               <span className="my-stat-pill is-mint">{profileSummary.status}</span>
-              <span className="my-stat-pill">{profileSummary.grade} 회원</span>
+              <span className="my-stat-pill">{formatMembershipLabel(profileSummary.grade)}</span>
               <span className="my-stat-pill is-soft">{profileSummary.joinedAt}</span>
             </div>
           </Link>

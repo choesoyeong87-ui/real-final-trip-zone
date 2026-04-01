@@ -4,6 +4,7 @@ import MyPageLayout from "../../components/user/MyPageLayout";
 import {
   membershipBenefitTiers,
 } from "../../data/mypageData";
+import { normalizeMembershipGrade } from "../../features/mypage/mypageViewModels";
 import { getMyBookings, getMyMileage, getMyProfileSummary } from "../../services/mypageService";
 
 const EMPTY_PROFILE_SUMMARY = {
@@ -11,12 +12,10 @@ const EMPTY_PROFILE_SUMMARY = {
   gradeHint: "누적 마일리지 0",
 };
 
-function normalizeGrade(grade = "") {
-  if (grade === "BASIC") return "Basic";
-  if (grade === "SILVER") return "Silver";
-  if (grade === "GOLD") return "Gold";
-  if (grade === "BLACK") return "Black";
-  return grade || "Basic";
+function toMembershipTierTitle(grade = "") {
+  const normalized = normalizeMembershipGrade(grade);
+  if (normalized === "회원") return "Basic";
+  return normalized.charAt(0) + normalized.slice(1).toLowerCase();
 }
 
 function getNextGrade(currentGrade) {
@@ -60,7 +59,7 @@ export default function MyMembershipPage() {
     };
   }, []);
 
-  const currentGrade = normalizeGrade(profileSummary.grade);
+  const currentGrade = toMembershipTierTitle(profileSummary.grade);
   const nextGrade = getNextGrade(currentGrade);
   const membershipMilestones = [
     { label: "현재 등급", value: currentGrade },

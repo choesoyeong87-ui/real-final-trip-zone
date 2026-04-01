@@ -425,12 +425,8 @@ export function getAdminAuditLogs() {
 }
 
 export async function getSellerLodgings() {
-  const host = await requireCurrentHostProfile();
-
-  const lodgings = await get("/api/lodgings/list");
-  return lodgings
-    .filter((item) => Number(item.hostNo) === Number(host.hostNo))
-    .map(mapSellerLodgingDto);
+  const lodgings = await get("/api/seller/lodgings");
+  return lodgings.map(mapSellerLodgingDto);
 }
 
 export async function updateSellerLodgingStatus(lodgingId, nextStatus) {
@@ -441,10 +437,8 @@ export async function updateSellerLodgingStatus(lodgingId, nextStatus) {
 }
 
 export async function getSellerReservations() {
-  const host = await requireCurrentHostProfile();
-
-  const response = await get(`/api/seller/hostlist/${host.hostNo}?page=1&size=100`);
-  return (response.dtoList ?? []).map(mapReservationDto);
+  const response = await get("/api/seller/bookings?page=1&size=100");
+  return extractRows(response).map(mapReservationDto);
 }
 
 export async function updateSellerReservationStatus(bookingNo, nextStatus) {
@@ -470,17 +464,7 @@ export async function updateSellerRoomStatus(roomId, nextStatus, lodgingName) {
 
 export async function getSellerAssets() {
   const lodgings = await getSellerLodgings();
-  const detailedLodgings = await Promise.all(
-    lodgings.map(async (lodging) => {
-      const detail = await get(`/api/lodgings/${lodging.id}`);
-      return {
-        ...lodging,
-        uploadFileNames: detail.uploadFileNames ?? lodging.uploadFileNames ?? [],
-      };
-    }),
-  );
-
-  return detailedLodgings.flatMap(mapSellerAssetRows);
+  return lodgings.flatMap(mapSellerAssetRows);
 }
 
 export async function updateSellerAsset(assetId, patchData) {
@@ -610,13 +594,8 @@ export async function getAdminDashboardSnapshot() {
 }
 
 export async function getSellerDashboardSnapshot() {
-  const host = await requireCurrentHostProfile();
-  const lodgingsPromise = get("/api/lodgings/list").then((rows) =>
-    rows.filter((item) => Number(item.hostNo) === Number(host.hostNo)).map(mapSellerLodgingDto),
-  );
-  const reservationsPromise = get(`/api/seller/hostlist/${host.hostNo}?page=1&size=100`).then((response) =>
-    extractRows(response).map(mapReservationDto),
-  );
+  const lodgingsPromise = getSellerLodgings();
+  const reservationsPromise = getSellerReservations();
   const inquiriesPromise = getSellerInquiryRooms().catch(() => []);
 
   const [lodgings, reservations, inquiries] = await Promise.all([
@@ -631,6 +610,6 @@ export async function getSellerDashboardSnapshot() {
     metrics,
     lodgings,
     reservations,
-    inquiries: [],
+    inquiries,
   };
 }

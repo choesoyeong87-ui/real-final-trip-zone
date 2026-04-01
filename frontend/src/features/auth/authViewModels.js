@@ -138,33 +138,6 @@ export function loadGoogleScript() {
   });
 }
 
-export async function loginWithGooglePopup() {
-  if (!GOOGLE_CLIENT_ID) {
-    throw new Error("구글 로그인 설정이 아직 연결되지 않았습니다.");
-  }
-  const google = await loadGoogleScript();
-
-  return new Promise((resolve, reject) => {
-    google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: async (response) => {
-        try {
-          const session = await loginWithGoogleIdToken(response.credential);
-          resolve(session);
-        } catch (error) {
-          reject(error);
-        }
-      },
-    });
-
-    google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
-        reject(new Error("Google 로그인 창을 열 수 없습니다. 브라우저의 FedCM 또는 서드파티 로그인 설정을 확인하세요."));
-      }
-    });
-  });
-}
-
 export async function logoutCurrentSession() {
   const session = readAuthSession();
 

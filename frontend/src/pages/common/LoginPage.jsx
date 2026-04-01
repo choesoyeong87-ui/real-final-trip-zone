@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import GoogleSignInButton from "../../components/auth/GoogleSignInButton";
 import { authProviders, defaultLoginForm, demoLoginAccounts } from "../../data/authData";
 import {
   getAuthProviderMark,
@@ -8,7 +9,6 @@ import {
   getSelectedAuthProvider,
   isGoogleLoginAvailable,
   loginWithCredentials,
-  loginWithGooglePopup,
   loginWithSessionPayload,
 } from "../../features/auth/authViewModels";
 
@@ -52,12 +52,6 @@ export default function LoginPage() {
 
       if (providerKey === "NAVER") {
         window.location.href = getNaverAuthUrl();
-        return;
-      }
-
-      if (providerKey === "GOOGLE") {
-        const session = await loginWithGooglePopup();
-        commitSession(session);
         return;
       }
 
@@ -130,17 +124,27 @@ export default function LoginPage() {
 
           <div className="auth-provider-stack">
             {socialProviders.map((provider) =>
-              <button
-                key={provider.key}
-                type="button"
-                className={`auth-provider-line auth-provider-${provider.key.toLowerCase()}${selectedProvider.key === provider.key ? " is-active" : ""}`}
-                onClick={() => handleSocialLogin(provider.key)}
-              >
-                <span className="auth-provider-mark" aria-hidden="true">
-                  {getAuthProviderMark(provider.key)}
-                </span>
-                <strong>{provider.label}로 계속하기</strong>
-              </button>,
+              provider.key === "GOOGLE" ? (
+                <div key={provider.key} className="auth-provider-google-button">
+                  <GoogleSignInButton
+                    text="continue_with"
+                    onSuccess={commitSession}
+                    onError={(error) => setErrorMessage(error.message || "구글 로그인에 실패했습니다.")}
+                  />
+                </div>
+              ) : (
+                <button
+                  key={provider.key}
+                  type="button"
+                  className={`auth-provider-line auth-provider-${provider.key.toLowerCase()}${selectedProvider.key === provider.key ? " is-active" : ""}`}
+                  onClick={() => handleSocialLogin(provider.key)}
+                >
+                  <span className="auth-provider-mark" aria-hidden="true">
+                    {getAuthProviderMark(provider.key)}
+                  </span>
+                  <strong>{provider.label}로 계속하기</strong>
+                </button>
+              ),
             )}
           </div>
 

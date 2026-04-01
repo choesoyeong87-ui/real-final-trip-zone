@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
-import { getProfileFieldGroups } from "../../features/mypage/mypageViewModels";
+import { formatMembershipGradeLabel, getProfileFieldGroups } from "../../features/mypage/mypageViewModels";
 import { clearAuthSession } from "../../utils/authSession";
 import {
   changeMyPassword,
@@ -204,7 +204,7 @@ export default function MyProfilePage() {
         </section>
         <section className="profile-summary-note">
           <span>{summary?.status ?? "회원 상태 확인 중"}</span>
-          <span>{summary?.grade ? `${summary.grade} 등급` : "등급 확인 중"}</span>
+          <span>{summary?.grade ? formatMembershipGradeLabel(summary.grade) : "등급 확인 중"}</span>
           <span>{summary?.joinedAt ?? "가입일 확인 중"}</span>
           {accountActionNotice ? <span>{accountActionNotice}</span> : null}
         </section>

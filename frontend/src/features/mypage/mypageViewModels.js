@@ -124,6 +124,30 @@ export function getInquiryCounts(rows) {
   };
 }
 
+export function normalizeMembershipGrade(grade = "") {
+  const normalized = String(grade ?? "").trim().toUpperCase();
+
+  if (!normalized || normalized === "회원" || normalized === "MEMBER") {
+    return "회원";
+  }
+
+  if (["BASIC", "SILVER", "GOLD", "BLACK"].includes(normalized)) {
+    return normalized;
+  }
+
+  return String(grade ?? "").trim() || "회원";
+}
+
+export function formatMembershipLabel(grade = "") {
+  const normalized = normalizeMembershipGrade(grade);
+  return normalized === "회원" ? "회원" : `${normalized} 회원`;
+}
+
+export function formatMembershipGradeLabel(grade = "") {
+  const normalized = normalizeMembershipGrade(grade);
+  return normalized === "회원" ? "회원 등급" : `${normalized} 등급`;
+}
+
 export function buildInquiryCreateForm(initialType) {
   return {
     ...DEFAULT_INQUIRY_FORM,
