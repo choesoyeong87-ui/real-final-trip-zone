@@ -106,17 +106,9 @@ export default function SellerAssetsPage() {
 
   return (
     <DashboardLayout role="seller">
-      <div className="dash-page-header">
-        <div className="dash-page-header-copy">
-          <p className="eyebrow">이미지 운영</p>
-          <h1>숙소 이미지 관리</h1>
-          <p>대표 {rows.filter((r) => r.type === "대표 이미지").length}개 · 일반 {rows.filter((r) => r.type === "일반 이미지").length}개</p>
-          {notice ? <p>{notice}</p> : null}
-        </div>
-      </div>
-
-      <div className="dash-table-split">
-        <section className="dash-content-section" style={{ marginBottom: 0 }}>
+      {notice ? <div className="my-empty-inline">{notice}</div> : null}
+      <div className="saas-bento-split seller-crud-split">
+        <section className="saas-bento-panel seller-crud-table-section">
           {isLoading ? <div className="my-empty-inline">이미지 목록을 불러오는 중입니다.</div> : null}
           <DataTable
             columns={columns}
@@ -127,31 +119,63 @@ export default function SellerAssetsPage() {
           />
         </section>
 
-        <div className="dash-action-sheet">
-          <h3>{selected?.lodging ?? "—"}</h3>
-          <p>{selected?.type} · 순서 {selected?.order}</p>
-          <div className="dash-action-grid">
-            <button type="button" className="dash-action-btn is-primary" onClick={() => updateSelected({ mode: "PRIMARY" })} disabled={!selected || !selected.fileName || isSubmitting}>대표 지정</button>
-            <button type="button" className="dash-action-btn is-danger" onClick={handleDelete} disabled={!selected || !selected.fileName || isSubmitting}>이미지 삭제</button>
+        <aside className="saas-bento-panel">
+          <div className="saas-bento-head">
+            <strong>{selected?.lodging ?? "이미지를 선택해 주세요"}</strong>
+            {selected?.type ? <p>{selected.type} · 순서 {selected.order}</p> : null}
           </div>
-          <div className="dash-create-form-grid seller-assets-upload-grid">
-            <label className="dash-field dash-field-wide">
-              <span>이미지 첨부</span>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(event) => setUploadFiles(Array.from(event.target.files ?? []))}
-              />
-              {uploadFiles.length ? <small>새 이미지 {uploadFiles.length}장 선택</small> : null}
+          <div className="dash-chips">
+            <span className="dash-chip is-accent">
+              대표 {rows.filter((r) => r.type === "대표 이미지").length}개
+            </span>
+            <span className="dash-chip">
+              일반 {rows.filter((r) => r.type === "일반 이미지").length}개
+            </span>
+          </div>
+          <div className="saas-form-actions saas-form-actions-start">
+            <button type="button" className="saas-btn-primary" onClick={() => updateSelected({ mode: "PRIMARY" })} disabled={!selected || !selected.fileName || isSubmitting}>대표 지정</button>
+            <button type="button" className="saas-btn-ghost" onClick={() => updateSelected({ mode: "LAST" })} disabled={!selected || !selected.fileName || isSubmitting}>뒤로 보내기</button>
+            <button type="button" className="saas-btn-ghost" onClick={handleDelete} disabled={!selected || !selected.fileName || isSubmitting}>이미지 삭제</button>
+          </div>
+          <form className="saas-create-form-grid" onSubmit={(event) => event.preventDefault()}>
+            <label className="saas-field">
+              <span>숙소</span>
+              <input value={selected?.lodging ?? ""} readOnly />
             </label>
-            <div className="dash-create-form-actions">
-              <button type="button" className="dash-action-btn" onClick={handleUpload} disabled={!selected?.lodgingId || !uploadFiles.length || isSubmitting}>
+            <label className="saas-field">
+              <span>이미지 유형</span>
+              <input value={selected?.type ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>정렬 순서</span>
+              <input value={selected?.order ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>노출 상태</span>
+              <input value={selected?.status ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>이미지 첨부</span>
+              <label className="saas-file-picker">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(event) => setUploadFiles(Array.from(event.target.files ?? []))}
+                />
+                <span className="saas-file-picker-button">파일 선택</span>
+                <span className="saas-file-picker-text">
+                  {uploadFiles.length ? `새 이미지 ${uploadFiles.length}장 선택` : "선택된 파일 없음"}
+                </span>
+              </label>
+            </label>
+            <div className="saas-form-actions">
+              <button type="button" className="saas-btn-primary" onClick={handleUpload} disabled={!selected?.lodgingId || !uploadFiles.length || isSubmitting}>
                 {isSubmitting ? "처리 중..." : "이미지 첨부"}
               </button>
             </div>
-          </div>
-        </div>
+          </form>
+        </aside>
       </div>
     </DashboardLayout>
   );

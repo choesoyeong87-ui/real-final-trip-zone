@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { homeSearchDefaults } from "../../data/homeData";
 import { DateRangePopover, GuestPopover, SuggestionsPanel } from "../../features/home/HomeSearchPanels";
-import { HomeRegionSection } from "../../features/home/HomeSections";
 import { SUGGESTION_ICON } from "../../features/home/homeConstants";
 import { formatDateSummary, parseISO, toISO } from "../../features/home/homeUtils";
 import {
@@ -53,70 +52,6 @@ export default function HomePage() {
     ],
     [location.pathname, location.search],
   );
-  const popularRegions = useMemo(() => {
-    const baseRegions = [
-      {
-        id: "region-jeju",
-        title: "제주",
-        region: "제주",
-        href: "/lodgings?region=제주",
-        image:
-          "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=80",
-        caption: "오션뷰와 리조트 중심",
-      },
-      {
-        id: "region-busan",
-        title: "부산",
-        region: "부산",
-        href: "/lodgings?region=부산",
-        image:
-          "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1400&q=80",
-        caption: "주말 바다 여행 인기",
-      },
-      {
-        id: "region-seoul",
-        title: "서울",
-        region: "서울",
-        href: "/lodgings?region=서울",
-        image:
-          "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1400&q=80",
-        caption: "도심 호캉스와 스테이",
-      },
-      {
-        id: "region-gangwon",
-        title: "강원",
-        region: "강원",
-        href: "/lodgings?region=강원",
-        image:
-          "https://images.unsplash.com/photo-1548625149-720523a7c103?auto=format&fit=crop&w=1400&q=80",
-        caption: "강릉 · 양양 · 속초 감성 숙소",
-      },
-    ];
-
-    return baseRegions.map((item) => {
-      const matches = lodgings.filter((lodging) => lodging.region === item.region);
-      const ranked = matches
-        .map((lodging) => ({
-          ...lodging,
-          numericPrice: Number(String(lodging.price ?? "").replace(/[^\d]/g, "")) || Number.MAX_SAFE_INTEGER,
-        }))
-        .sort((left, right) => left.numericPrice - right.numericPrice);
-
-      const lead = ranked[0];
-      return {
-        ...item,
-        image: lead?.image ?? item.image,
-        price: lead?.price ?? "",
-        count: matches.length,
-        district: lead?.district ?? `${item.region} 추천 숙소`,
-        stayName: lead?.name ?? `${item.region} 대표 숙소`,
-        rating: lead?.rating ?? "0.0",
-        reviewCount: lead?.reviewCount ?? "0개",
-        benefit: lead?.benefit ?? item.caption,
-      };
-    });
-  }, [lodgings]);
-
   const heroStats = useMemo(() => {
     const activeCount = lodgings.filter((item) => item.status === "ACTIVE").length;
     const reviewTotal = lodgings.reduce((total, item) => {
@@ -126,11 +61,12 @@ export default function HomePage() {
     const regions = new Set(lodgings.map((item) => item.region).filter(Boolean));
 
     return [
-      { label: "예약 가능 숙소", value: `${activeCount || lodgings.length || 18}+` },
-      { label: "인기 지역", value: `${regions.size || popularRegions.length || 8}` },
-      { label: "누적 후기", value: `${reviewTotal || 1200}+` },
+      { label: "예약 가능 숙소", value: `${activeCount || lodgings.length || 18}+`, numericValue: activeCount || lodgings.length || 18, suffix: "+" },
+      { label: "인기 지역", value: `${regions.size || 8}`, numericValue: regions.size || 8, suffix: "" },
+      { label: "누적 후기", value: `${reviewTotal || 1200}+`, numericValue: reviewTotal || 1200, suffix: "+" },
     ];
-  }, [lodgings, popularRegions.length]);
+  }, [lodgings]);
+  const [animatedHeroStats, setAnimatedHeroStats] = useState(() => heroStats.map((item) => item.value));
 
   const allSuggestionItems = useMemo(
     () => buildHomeSuggestionItems(lodgings, searchSuggestionItems),
@@ -181,6 +117,33 @@ export default function HomePage() {
   useEffect(() => {
     setActiveSuggest(0);
   }, [searchForm.keyword]);
+
+  useEffect(() => {
+    if (lodgingsLoading) return;
+
+    let frameId = 0;
+    const startedAt = performance.now();
+    const duration = 1100;
+
+    const tick = (now) => {
+      const progress = Math.min((now - startedAt) / duration, 1);
+      const eased = 1 - (1 - progress) * (1 - progress);
+
+      setAnimatedHeroStats(
+        heroStats.map((item) => `${Math.round(item.numericValue * eased)}${item.suffix}`),
+      );
+
+      if (progress < 1) {
+        frameId = requestAnimationFrame(tick);
+        return;
+      }
+
+      setAnimatedHeroStats(heroStats.map((item) => item.value));
+    };
+
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [heroStats, lodgingsLoading]);
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -266,10 +229,7 @@ export default function HomePage() {
       <section className="home-rebuild-stage home-rebuild-viewport">
         <div className="home-rebuild-shell">
           <div className="home-rebuild-copy">
-            <h1>
-              지금 머물고 싶은 여행지를
-              <span className="home-rebuild-headline-break">한 번에 찾으세요.</span>
-            </h1>
+            <h1>일정에 맞는 국내 숙소를 찾아보세요.</h1>
           </div>
 
           <form ref={searchShellRef} className="home-rebuild-search-strip" onSubmit={handleSearchSubmit}>
@@ -281,7 +241,7 @@ export default function HomePage() {
               <input
                 className="home-rebuild-search-input"
                 value={searchForm.keyword}
-                placeholder="어디로 떠나세요"
+                placeholder="지역명 또는 숙소명을 입력하세요"
                 onFocus={() => setActivePanel("keyword")}
                 onKeyDown={handleKeywordKeyDown}
                 onChange={(event) => {
@@ -328,9 +288,9 @@ export default function HomePage() {
           </div>
 
           <div className="home-rebuild-stat-row" aria-label="홈 요약 지표">
-            {heroStats.map((item) => (
+            {heroStats.map((item, index) => (
               <div key={item.label} className="home-rebuild-stat-card">
-                <strong>{lodgingsLoading ? "—" : item.value}</strong>
+                <strong>{lodgingsLoading ? "—" : animatedHeroStats[index] ?? item.value}</strong>
                 <span>{item.label}</span>
               </div>
             ))}
@@ -378,10 +338,6 @@ export default function HomePage() {
           />
         </div>
       </section>
-
-      <div className="container home-content">
-        <HomeRegionSection regions={popularRegions} loading={lodgingsLoading} />
-      </div>
     </div>
   );
 }

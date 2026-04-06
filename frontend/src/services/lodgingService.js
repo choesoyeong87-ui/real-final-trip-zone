@@ -3,7 +3,7 @@ import { get, getApiBaseUrl, post } from "../lib/appClient";
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1400&q=80";
-const LODGINGS_CACHE_KEY = "tripzone-lodgings-cache-v1";
+const LODGINGS_CACHE_KEY = "tripzone-lodgings-cache-v2";
 const LODGINGS_INVALIDATED_AT_KEY = "tripzone-lodgings-invalidated-at";
 const LODGINGS_CACHE_TTL = 1000 * 60 * 5;
 const FALLBACK_COORDS = {

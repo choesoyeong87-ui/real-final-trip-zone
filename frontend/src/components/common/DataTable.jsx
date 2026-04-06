@@ -37,7 +37,13 @@ const STATUS_KEYS = new Set([
   "type",
 ]);
 
-function renderCell(columnKey, value) {
+function renderCell(column, row) {
+  if (typeof column.render === "function") {
+    return column.render(row[column.key], row);
+  }
+
+  const columnKey = column.key;
+  const value = row[columnKey];
   const text = String(value ?? "");
 
   if (STATUS_KEYS.has(columnKey)) {
@@ -79,7 +85,7 @@ export default function DataTable({
                 onClick={onRowClick ? () => onRowClick(row, index) : undefined}
               >
                 {columns.map((column) => (
-                  <td key={column.key}>{renderCell(column.key, row[column.key])}</td>
+                  <td key={column.key}>{renderCell(column, row)}</td>
                 ))}
               </tr>
             ))}

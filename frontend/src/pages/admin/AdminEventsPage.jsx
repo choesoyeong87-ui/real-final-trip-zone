@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DataTable from "../../components/common/DataTable";
-import { getAdminEvents, saveAdminEvent, updateAdminEventStatus } from "../../services/dashboardService";
+import {
+  createAdminCoupon,
+  createAdminEvent,
+  deleteAdminCoupon,
+  deleteAdminEvent,
+  getAdminEvents,
+  saveAdminEvent,
+  updateAdminEventStatus,
+} from "../../services/dashboardService";
 
 const columns = [
   { key: "title", label: "이벤트/쿠폰명" },
@@ -26,6 +34,7 @@ export default function AdminEventsPage() {
   const [rows, setRows] = useState([]);
   const [section, setSection] = useState("EVENT");
   const [selectedEventId, setSelectedEventId] = useState(null);
+  const [mode, setMode] = useState("edit");
   const [notice, setNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [uploadFile, setUploadFile] = useState(null);
@@ -34,6 +43,9 @@ export default function AdminEventsPage() {
     content: "",
     startDate: "",
     endDate: "",
+    discountType: "AMOUNT",
+    discountValue: "10000",
+    status: "DRAFT",
   });
   const visibleRows = rows.filter((row) => row.entityType === section);
   const selectedEvent = visibleRows.find((row) => row.id === selectedEventId) ?? visibleRows[0] ?? null;
@@ -54,8 +66,13 @@ export default function AdminEventsPage() {
             content: nextRows[0].content ?? "",
             startDate: nextRows[0].startDate ? nextRows[0].startDate.slice(0, 16) : "",
             endDate: nextRows[0].endDate ? nextRows[0].endDate.slice(0, 16) : "",
+            discountType: nextRows[0].discountType ?? "AMOUNT",
+            discountValue: String(nextRows[0].discountValue ?? 10000),
+            status: nextRows[0].status ?? "DRAFT",
           });
+          setMode("edit");
         }
+        setNotice("");
       } catch (error) {
         if (cancelled) return;
         console.error("Failed to load admin events.", error);
@@ -77,6 +94,7 @@ export default function AdminEventsPage() {
   useEffect(() => {
     if (!visibleRows.length) {
       setSelectedEventId(null);
+      setMode("create");
       return;
     }
 
@@ -94,8 +112,27 @@ export default function AdminEventsPage() {
       content: target.content ?? "",
       startDate: target.startDate ? target.startDate.slice(0, 16) : "",
       endDate: target.endDate ? target.endDate.slice(0, 16) : "",
+      discountType: target.discountType ?? "AMOUNT",
+      discountValue: String(target.discountValue ?? 10000),
+      status: target.status ?? "DRAFT",
     });
     setUploadFile(null);
+    setMode("edit");
+  };
+
+  const openCreate = () => {
+    setMode("create");
+    setSelectedEventId(null);
+    setUploadFile(null);
+    setDraft({
+      title: "",
+      content: "",
+      startDate: "",
+      endDate: "",
+      discountType: "AMOUNT",
+      discountValue: "10000",
+      status: section === "EVENT" ? "DRAFT" : "INACTIVE",
+    });
   };
 
   const updateStatus = async (nextStatus) => {
@@ -110,12 +147,59 @@ export default function AdminEventsPage() {
   };
 
   const handleSave = async () => {
-    if (!selectedEvent) return;
+    if (!draft.title.trim()) {
+      setNotice(section === "EVENT" ? "이벤트명을 입력해 주세요." : "쿠폰명을 입력해 주세요.");
+      return;
+    }
+    if (!draft.startDate || !draft.endDate) {
+      setNotice("운영 기간을 입력해 주세요.");
+      return;
+    }
+    if (mode === "create" && section === "EVENT" && !uploadFile) {
+      setNotice("신규 이벤트 이미지를 첨부해 주세요.");
+      return;
+    }
+
     try {
-      const updatedEvent = await saveAdminEvent(selectedEvent.id, draft, selectedEvent, uploadFile);
-      setRows((current) => current.map((row) => (row.id === updatedEvent.id ? updatedEvent : row)));
+      if (mode === "create") {
+        const created =
+          section === "EVENT"
+            ? await createAdminEvent(draft, uploadFile)
+            : await createAdminCoupon(draft);
+        const nextRows = await getAdminEvents();
+        setRows(nextRows);
+        setSelectedEventId(created?.id ?? nextRows.find((row) => row.entityType === section)?.id ?? null);
+        setMode("edit");
+        setNotice(section === "EVENT" ? "이벤트를 등록했습니다." : "쿠폰을 등록했습니다.");
+      } else if (selectedEvent) {
+        const updatedEvent = await saveAdminEvent(selectedEvent.id, draft, selectedEvent, uploadFile);
+        setRows((current) => current.map((row) => (row.id === updatedEvent.id ? updatedEvent : row)));
+        setNotice("이벤트 정보를 저장했습니다.");
+      }
       setUploadFile(null);
-      setNotice("이벤트 정보를 저장했습니다.");
+    } catch (error) {
+      setNotice(error.message);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedEvent || mode === "create") return;
+    try {
+      if (selectedEvent.entityType === "EVENT") {
+        await deleteAdminEvent(selectedEvent.entityNo);
+      } else {
+        await deleteAdminCoupon(selectedEvent.entityNo);
+      }
+      const nextRows = await getAdminEvents();
+      const nextVisibleRows = nextRows.filter((row) => row.entityType === section);
+      setRows(nextRows);
+      setSelectedEventId(nextVisibleRows[0]?.id ?? null);
+      if (nextVisibleRows[0]) {
+        syncDraft(nextVisibleRows[0].id, nextRows);
+      } else {
+        openCreate();
+      }
+      setNotice(selectedEvent.entityType === "EVENT" ? "이벤트를 삭제했습니다." : "쿠폰을 삭제했습니다.");
     } catch (error) {
       setNotice(error.message);
     }
@@ -123,34 +207,20 @@ export default function AdminEventsPage() {
 
   return (
     <DashboardLayout role="admin">
-      <div className="dash-page-header">
-        <div className="dash-page-header-copy">
-          <p className="eyebrow">이벤트 운영</p>
-          <h1>이벤트 · 쿠폰 관리</h1>
-          <p>노출 {rows.filter((r) => isVisibleStatus(r.status)).length}건 · 초안 {rows.filter((r) => isDraftStatus(r.status)).length}건 · 숨김 {rows.filter((r) => isHiddenStatus(r.status)).length}건</p>
-          {notice ? <p>{notice}</p> : null}
-        </div>
-      </div>
-
-      <div className="dash-segmented-filter" role="tablist" aria-label="이벤트 쿠폰 구분">
-        <button
-          type="button"
-          className={`dash-segmented-filter-btn${section === "EVENT" ? " is-active" : ""}`}
-          onClick={() => setSection("EVENT")}
-        >
-          이벤트
-        </button>
-        <button
-          type="button"
-          className={`dash-segmented-filter-btn${section === "COUPON" ? " is-active" : ""}`}
-          onClick={() => setSection("COUPON")}
-        >
-          쿠폰
-        </button>
-      </div>
-
-      <div className="dash-table-split">
-        <section className="dash-content-section" style={{ marginBottom: 0 }}>
+      {notice ? <div className="my-empty-inline">{notice}</div> : null}
+      <div className="saas-bento-split seller-crud-split">
+        <section className="saas-bento-panel seller-crud-table-section">
+          <div className="saas-form-actions saas-form-actions-start">
+            <button type="button" className={section === "EVENT" ? "saas-btn-primary" : "saas-btn-ghost"} onClick={() => setSection("EVENT")}>
+              이벤트
+            </button>
+            <button type="button" className={section === "COUPON" ? "saas-btn-primary" : "saas-btn-ghost"} onClick={() => setSection("COUPON")}>
+              쿠폰
+            </button>
+            <button type="button" className="saas-btn-ghost" onClick={openCreate}>
+              신규 등록
+            </button>
+          </div>
           {isLoading ? <div className="my-empty-inline">이벤트 목록을 불러오는 중입니다.</div> : null}
           <DataTable
             columns={columns}
@@ -164,43 +234,94 @@ export default function AdminEventsPage() {
           />
         </section>
 
-        <div className="dash-action-sheet">
-          <h3>{selectedEvent?.title ?? "—"}</h3>
-          <div className="dash-field">
-            <span>{selectedEvent?.entityType === "COUPON" ? "쿠폰명" : "이벤트명"}</span>
-            <input value={draft.title} onChange={(e) => setDraft((c) => ({ ...c, title: e.target.value }))} />
+        <aside className="saas-bento-panel">
+          <div className="saas-bento-head">
+            <strong>{mode === "create" ? `${section === "EVENT" ? "신규 이벤트" : "신규 쿠폰"} 등록` : selectedEvent?.title ?? "이벤트를 선택해 주세요"}</strong>
+            {selectedEvent && mode !== "create" ? <p>{selectedEvent.entityType === "COUPON" ? "쿠폰" : "이벤트"} · {selectedEvent.period}</p> : null}
           </div>
-          <div className="dash-field">
-            <span>내용</span>
-            <input value={draft.content} onChange={(e) => setDraft((c) => ({ ...c, content: e.target.value }))} />
+          <div className="dash-chips">
+            <span className="dash-chip is-accent">노출 {rows.filter((row) => isVisibleStatus(row.status)).length}건</span>
+            <span className="dash-chip is-warning">초안 {rows.filter((row) => isDraftStatus(row.status)).length}건</span>
+            <span className="dash-chip">숨김 {rows.filter((row) => isHiddenStatus(row.status)).length}건</span>
           </div>
-          <div className="dash-field">
-            <span>시작 일시</span>
-            <input type="datetime-local" value={draft.startDate} onChange={(e) => setDraft((c) => ({ ...c, startDate: e.target.value }))} />
+          <div className="saas-form-actions saas-form-actions-start">
+            <button type="button" className="saas-btn-primary" onClick={handleSave}>
+              {mode === "create" ? "등록" : "저장"}
+            </button>
+            <button type="button" className="saas-btn-ghost" onClick={() => updateStatus("ONGOING")} disabled={!selectedEvent || mode === "create"}>
+              노출
+            </button>
+            <button type="button" className="saas-btn-danger" onClick={() => updateStatus("HIDDEN")} disabled={!selectedEvent || mode === "create"}>
+              숨김
+            </button>
+            <button type="button" className="saas-btn-ghost" onClick={handleDelete} disabled={!selectedEvent || mode === "create"}>
+              삭제
+            </button>
           </div>
-          <div className="dash-field">
-            <span>종료 일시</span>
-            <input type="datetime-local" value={draft.endDate} onChange={(e) => setDraft((c) => ({ ...c, endDate: e.target.value }))} />
-          </div>
-          {selectedEvent?.entityType === "EVENT" ? (
-            <div className="dash-field dash-field-wide">
-              <span>이벤트 이미지</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
-              />
-              <small className="dash-field-hint">
-                {uploadFile?.name || (selectedEvent.thumbnailUrl ? "기존 이미지 유지 중" : "등록된 이미지 없음")}
-              </small>
-            </div>
-          ) : null}
-          <div className="dash-action-grid">
-            <button type="button" className="dash-action-btn is-primary" onClick={handleSave} disabled={!selectedEvent}>저장</button>
-            <button type="button" className="dash-action-btn" onClick={() => updateStatus("ONGOING")} disabled={!selectedEvent}>노출</button>
-            <button type="button" className="dash-action-btn is-danger" onClick={() => updateStatus("HIDDEN")} disabled={!selectedEvent}>숨김</button>
-          </div>
-        </div>
+          <form className="saas-create-form-grid" onSubmit={(event) => event.preventDefault()}>
+            <label className="saas-field">
+              <span>{selectedEvent?.entityType === "COUPON" ? "쿠폰명" : "이벤트명"}</span>
+              <input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} />
+            </label>
+            {section === "COUPON" ? (
+              <>
+                <label className="saas-field">
+                  <span>할인 방식</span>
+                  <select value={draft.discountType} onChange={(event) => setDraft((current) => ({ ...current, discountType: event.target.value }))}>
+                    <option value="AMOUNT">정액</option>
+                    <option value="RATE">정률</option>
+                  </select>
+                </label>
+                <label className="saas-field">
+                  <span>할인 값</span>
+                  <input type="number" min="0" value={draft.discountValue} onChange={(event) => setDraft((current) => ({ ...current, discountValue: event.target.value }))} />
+                </label>
+              </>
+            ) : (
+              <label className="saas-field">
+                <span>대상</span>
+                <input value={selectedEvent?.target ?? "전체 회원"} readOnly />
+              </label>
+            )}
+            <label className="saas-field">
+              <span>시작 일시</span>
+              <input type="datetime-local" value={draft.startDate} onChange={(event) => setDraft((current) => ({ ...current, startDate: event.target.value }))} />
+            </label>
+            <label className="saas-field">
+              <span>종료 일시</span>
+              <input type="datetime-local" value={draft.endDate} onChange={(event) => setDraft((current) => ({ ...current, endDate: event.target.value }))} />
+            </label>
+            {section === "EVENT" ? (
+              <label className="saas-field">
+                <span>내용</span>
+                <textarea rows={4} value={draft.content} onChange={(event) => setDraft((current) => ({ ...current, content: event.target.value }))} />
+              </label>
+            ) : null}
+            {selectedEvent?.entityType === "EVENT" ? (
+              <label className="saas-field">
+                <span>이벤트 이미지</span>
+                <label className="saas-file-picker">
+                  <input type="file" accept="image/*" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} />
+                  <span className="saas-file-picker-button">파일 선택</span>
+                  <span className="saas-file-picker-text">
+                    {uploadFile?.name || (selectedEvent.thumbnailUrl ? "기존 이미지 유지 중" : "선택된 파일 없음")}
+                  </span>
+                </label>
+              </label>
+            ) : section === "EVENT" && mode === "create" ? (
+              <label className="saas-field">
+                <span>이벤트 이미지</span>
+                <label className="saas-file-picker">
+                  <input type="file" accept="image/*" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} />
+                  <span className="saas-file-picker-button">파일 선택</span>
+                  <span className="saas-file-picker-text">
+                    {uploadFile?.name || "선택된 파일 없음"}
+                  </span>
+                </label>
+              </label>
+            ) : null}
+          </form>
+        </aside>
       </div>
     </DashboardLayout>
   );

@@ -345,8 +345,6 @@ export function BookingSummarySection({
           </div>
         ))}
       </div>
-
-      {submitError ? <p className="booking-submit-error">{submitError}</p> : null}
       <button
         type="button"
         className={`primary-button booking-card-button${canSubmit ? "" : " is-disabled"}`}

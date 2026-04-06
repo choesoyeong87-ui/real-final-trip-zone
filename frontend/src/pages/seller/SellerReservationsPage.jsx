@@ -59,17 +59,9 @@ export default function SellerReservationsPage() {
 
   return (
     <DashboardLayout role="seller">
-      <div className="dash-page-header">
-        <div className="dash-page-header-copy">
-          <p className="eyebrow">예약 운영</p>
-          <h1>예약 관리</h1>
-          <p>대기 {rows.filter((r) => r.status === "PENDING").length}건 · 확정 {rows.filter((r) => r.status === "CONFIRMED").length}건 · 취소 {rows.filter((r) => r.status === "CANCELED").length}건</p>
-          {notice ? <p>{notice}</p> : null}
-        </div>
-      </div>
-
-      <div className="dash-table-split">
-        <section className="dash-content-section" style={{ marginBottom: 0 }}>
+      {notice ? <div className="my-empty-inline">{notice}</div> : null}
+      <div className="saas-bento-split seller-crud-split">
+        <section className="saas-bento-panel seller-crud-table-section seller-reservations-table-section">
           {isLoading ? <div className="my-empty-inline">예약 목록을 불러오는 중입니다.</div> : null}
           <DataTable
             columns={columns}
@@ -80,15 +72,44 @@ export default function SellerReservationsPage() {
           />
         </section>
 
-        <div className="dash-action-sheet">
-          <h3>{selected?.no ?? "—"}</h3>
-          <p>{selected?.guest} · {selected?.stay}</p>
-          <div className="dash-action-grid">
-            <button type="button" className="dash-action-btn is-primary" onClick={() => updateStatus("CONFIRMED")} disabled={!selected}>확정</button>
-            <button type="button" className="dash-action-btn" onClick={() => updateStatus("COMPLETED")} disabled={!selected}>완료</button>
-            <button type="button" className="dash-action-btn is-danger" onClick={() => updateStatus("CANCELED")} disabled={!selected}>취소</button>
+        <aside className="saas-bento-panel">
+          <div className="saas-bento-head">
+            <strong>{selected?.no ? `예약 ${selected.no}` : "예약을 선택해 주세요"}</strong>
+            {selected ? <p>{selected.guest} · {selected.stay}</p> : null}
           </div>
-        </div>
+          <div className="dash-chips">
+            <span className="dash-chip is-warning">대기 {rows.filter((r) => r.status === "PENDING").length}건</span>
+            <span className="dash-chip is-accent">확정 {rows.filter((r) => r.status === "CONFIRMED").length}건</span>
+            <span className="dash-chip">취소 {rows.filter((r) => r.status === "CANCELED").length}건</span>
+          </div>
+          <div className="saas-form-actions saas-form-actions-start">
+            <button type="button" className="saas-btn-primary" onClick={() => updateStatus("CONFIRMED")} disabled={!selected}>확정</button>
+            <button type="button" className="saas-btn-ghost" onClick={() => updateStatus("COMPLETED")} disabled={!selected}>완료</button>
+            <button type="button" className="saas-btn-danger" onClick={() => updateStatus("CANCELED")} disabled={!selected}>취소</button>
+          </div>
+          <form className="saas-create-form-grid" onSubmit={(event) => event.preventDefault()}>
+            <label className="saas-field">
+              <span>예약자</span>
+              <input value={selected?.guest ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>숙박일</span>
+              <input value={selected?.stay ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>상태</span>
+              <input value={selected?.status ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>결제금액</span>
+              <input value={selected?.amount ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>상세 정보</span>
+              <textarea rows={4} value={selected?.detail ?? ""} readOnly />
+            </label>
+          </form>
+        </aside>
       </div>
     </DashboardLayout>
   );

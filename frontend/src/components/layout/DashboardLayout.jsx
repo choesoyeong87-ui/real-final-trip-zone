@@ -1,21 +1,47 @@
 import { Link, useLocation } from "react-router-dom";
 
 const ADMIN_MENU = [
-  { label: "대시보드", to: "/admin", icon: "01" },
-  { label: "회원 관리", to: "/admin/users", icon: "02" },
-  { label: "판매자 관리", to: "/admin/sellers", icon: "03" },
-  { label: "이벤트 · 쿠폰", to: "/admin/events", icon: "04" },
-  { label: "문의 모니터링", to: "/admin/inquiries", icon: "05" },
-  { label: "리뷰 운영", to: "/admin/reviews", icon: "06" },
+  {
+    category: "핵심 요약",
+    items: [{ label: "대시보드", to: "/admin" }]
+  },
+  {
+    category: "고객/회원",
+    items: [
+      { label: "회원 관리", to: "/admin/users" },
+      { label: "판매자 관리", to: "/admin/sellers" }
+    ]
+  },
+  {
+    category: "운영/서비스",
+    items: [
+      { label: "이벤트 · 쿠폰", to: "/admin/events" },
+      { label: "문의 모니터링", to: "/admin/inquiries" },
+      { label: "리뷰 운영", to: "/admin/reviews" }
+    ]
+  }
 ];
 
 const SELLER_MENU = [
-  { label: "대시보드", to: "/seller", icon: "01" },
-  { label: "숙소 관리", to: "/seller/lodgings", icon: "02" },
-  { label: "객실 관리", to: "/seller/rooms", icon: "03" },
-  { label: "이미지 관리", to: "/seller/assets", icon: "04" },
-  { label: "예약 관리", to: "/seller/reservations", icon: "05" },
-  { label: "문의 관리", to: "/seller/inquiries", icon: "06" },
+  {
+    category: "운영 요약",
+    items: [{ label: "대시보드", to: "/seller" }]
+  },
+  {
+    category: "상품 관리",
+    items: [
+      { label: "숙소 관리", to: "/seller/lodgings" },
+      { label: "객실 관리", to: "/seller/rooms" },
+      { label: "이미지 관리", to: "/seller/assets" }
+    ]
+  },
+  {
+    category: "예약 및 고객",
+    items: [
+      { label: "예약 관리", to: "/seller/reservations" },
+      { label: "문의 관리", to: "/seller/inquiries" }
+    ]
+  }
 ];
 
 export default function DashboardLayout({ role, children }) {
@@ -28,32 +54,30 @@ export default function DashboardLayout({ role, children }) {
     <div className={`dash-layout ${roleClass}`}>
       <aside className="dash-sidebar">
         <div className="dash-sidebar-head">
-          <span className="dash-sidebar-badge">{role === "admin" ? "A" : "S"}</span>
           <div className="dash-sidebar-info">
             <strong>{roleLabel}</strong>
             <span>TripZone</span>
           </div>
         </div>
 
-        <div className="dash-sidebar-summary">
-          <span>{role === "admin" ? "Operations" : "Workspace"}</span>
-          <strong>{role === "admin" ? "승인, 모니터링, 제재 흐름" : "예약, 숙소, 문의 운영 흐름"}</strong>
-        </div>
-
         <nav className="dash-sidebar-nav">
-          {menu.map((item) => {
-            const isActive = location.pathname === item.to;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`dash-sidebar-link${isActive ? " is-active" : ""}`}
-              >
-                <span className="dash-sidebar-icon">{item.icon}</span>
-                <span className="dash-sidebar-label">{item.label}</span>
-              </Link>
-            );
-          })}
+          {menu.map((group, groupIdx) => (
+            <div key={groupIdx} className="dash-sidebar-group">
+              <span className="dash-sidebar-category">{group.category}</span>
+              {group.items.map((item) => {
+                const isActive = location.pathname === item.to;
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`dash-sidebar-link${isActive ? " is-active" : ""}`}
+                  >
+                    <span className="dash-sidebar-label">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="dash-sidebar-footer">

@@ -11,7 +11,18 @@ function resolveDefaultApiBaseUrl() {
   return "http://100.96.110.114:8080";
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? resolveDefaultApiBaseUrl();
+function resolveApiBaseUrl() {
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "http://localhost:8080";
+    }
+  }
+
+  return import.meta.env.VITE_API_BASE_URL ?? resolveDefaultApiBaseUrl();
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 const APP_DATA_SOURCE = "http";
 
 export function getApiBaseUrl() {

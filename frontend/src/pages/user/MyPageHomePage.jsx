@@ -5,6 +5,8 @@ import { myPageSections } from "../../data/mypageData";
 import { formatMembershipLabel } from "../../features/mypage/mypageViewModels";
 import { getMyHome } from "../../services/mypageService";
 
+const MY_HOME_CACHE_KEY = "tripzone-my-home";
+
 const EMPTY_PROFILE_SUMMARY = {
   name: "TripZone 회원",
   grade: "회원",
@@ -13,19 +15,36 @@ const EMPTY_PROFILE_SUMMARY = {
   joinedAt: "가입일 확인 중",
 };
 
+function readMyHomeCache() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(MY_HOME_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function MyPageHomePage() {
-  const [homeData, setHomeData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedHomeData = readMyHomeCache();
+  const [homeData, setHomeData] = useState(cachedHomeData);
+  const [isLoading, setIsLoading] = useState(!cachedHomeData);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadMyHome() {
       try {
-        setIsLoading(true);
+        if (!cachedHomeData) {
+          setIsLoading(true);
+        }
         const response = await getMyHome();
         if (cancelled) return;
         setHomeData(response);
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(MY_HOME_CACHE_KEY, JSON.stringify(response));
+        }
       } catch (error) {
         console.error("Failed to load mypage home.", error);
       } finally {

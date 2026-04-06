@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { homeSearchDefaults } from "../../data/homeData";
 import { lodgingSortOptions } from "../../data/lodgingData";
+import { readRecentSearches, writeRecentSearches } from "../../features/home/homeViewModel";
 import { DateRangePopover, GuestPopover, SuggestionsPanel } from "../../features/lodging-list/LodgingSearchPanels";
 import { LodgingListToolbar } from "../../features/lodging-list/LodgingListToolbar";
 import { LodgingResultsLayout, LodgingMapPanel } from "../../features/lodging-list/LodgingResultsLayout";
@@ -56,6 +57,7 @@ export default function LodgingListPage() {
     checkOut,
     guests,
   });
+  const [recentSearches, setRecentSearches] = useState([]);
   const [activePanel, setActivePanel] = useState(null);
   const [activeFilterMenu, setActiveFilterMenu] = useState(null);
   const [visibleMonth, setVisibleMonth] = useState(() => {
@@ -117,7 +119,10 @@ export default function LodgingListPage() {
 
   const [activeLodgingId, setActiveLodgingId] = useState(null);
   const selectedLodging = filteredLodgings.find((item) => item.id === activeLodgingId) ?? null;
-  const activeFilterCount = filterSummary.length;
+
+  useEffect(() => {
+    setRecentSearches(readRecentSearches());
+  }, []);
 
   useEffect(() => {
     setSearchForm({ keyword, checkIn, checkOut, guests });
@@ -202,6 +207,10 @@ export default function LodgingListPage() {
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
+    if (searchForm.keyword.trim()) {
+      const nextRecent = writeRecentSearches(searchForm.keyword, recentSearches);
+      setRecentSearches(nextRecent);
+    }
     updateParams(searchForm);
     setActivePanel(null);
   };
@@ -253,33 +262,8 @@ export default function LodgingListPage() {
     setActivePanel(null);
   };
 
-  const selectedLodgingSummary = selectedLodging
-    ? `${selectedLodging.region} · ${selectedLodging.district} · ${selectedLodging.price}`
-    : "조건에 맞는 숙소를 정리하고 있어요.";
-
   return (
     <div className="container list-page">
-      <section className="list-hero">
-        <div>
-          <p className="eyebrow">숙소 검색</p>
-          <h1>{keyword ? `${keyword} 주변 숙소` : "지금 예약 가능한 숙소"}</h1>
-          <p>
-            {formatDateSummary(checkIn, checkOut)} · 성인 {guests}명
-            {activeFilterCount ? ` · 필터 ${activeFilterCount}개 적용 중` : " · 전체 조건 보기"}
-          </p>
-        </div>
-        <div className="list-hero-meta">
-          <div className="list-hero-stat">
-            <span>{selectedLodging ? "선택 숙소" : "전체"}</span>
-            <strong>{selectedLodging?.name ?? "가격 · 후기 · 위치 중심 비교"}</strong>
-          </div>
-          <div className="list-hero-stat">
-            <span>정렬</span>
-            <strong>{lodgingSortOptions.find((item) => item.value === sort)?.label ?? "추천순"}</strong>
-          </div>
-        </div>
-      </section>
-
       <form ref={searchShellRef} className="list-search-bar list-search-bar-showcase list-search-bar-wide" onSubmit={handleSearchSubmit}>
         <div className="list-search-ambient" aria-hidden="true">
           <span className="list-search-accent list-search-accent-warm" />
@@ -289,11 +273,11 @@ export default function LodgingListPage() {
           ref={keywordRef}
           className={`list-search-field list-search-field-button${activePanel === "keyword" ? " is-active" : ""}`}
         >
-          <span>숙소 검색</span>
+          <span>지역</span>
           <input
             className="search-input"
             value={searchForm.keyword}
-            placeholder="여행지를 입력하세요"
+            placeholder="지역명 또는 숙소명을 입력하세요"
             onFocus={() => setActivePanel("keyword")}
             onChange={(event) => {
               setSearchForm((current) => ({ ...current, keyword: event.target.value }));
@@ -310,7 +294,7 @@ export default function LodgingListPage() {
             setActivePanel((current) => (current === "date" ? null : "date"));
           }}
         >
-          <span>체크인 / 체크아웃</span>
+          <span>일정</span>
           <strong>{formatDateSummary(searchForm.checkIn, searchForm.checkOut)}</strong>
         </button>
         <button
@@ -323,7 +307,7 @@ export default function LodgingListPage() {
           <strong>성인 {searchForm.guests}명 · 객실 1개</strong>
         </button>
         <button className="primary-button list-search-submit" type="submit">
-          조건으로 숙소 찾기
+          검색
         </button>
       </form>
 
@@ -332,6 +316,11 @@ export default function LodgingListPage() {
         anchorRef={keywordRef}
         panelRef={suggestPanelRef}
         items={filteredSuggestions}
+        recentSearches={recentSearches}
+        onPickRecent={(item) => {
+          setSearchForm((current) => ({ ...current, keyword: item }));
+          setActivePanel(null);
+        }}
         onPick={(item) => {
           setSearchForm((current) => ({ ...current, keyword: item.label }));
           setActivePanel(null);
@@ -359,39 +348,29 @@ export default function LodgingListPage() {
         onClose={() => setActivePanel(null)}
       />
 
+      <LodgingListToolbar
+        toolbarRef={toolbarRef}
+        activeFilterMenu={activeFilterMenu}
+        setActiveFilterMenu={setActiveFilterMenu}
+        filterSummary={filterSummary}
+        updateParams={updateParams}
+        availableOnly={availableOnly}
+        optionCounts={optionCounts}
+        type={type}
+        features={features}
+        priceBand={priceBand}
+        regionFilter={regionFilter}
+        tastes={tastes}
+        discounts={discounts}
+        grades={grades}
+        facilities={facilities}
+        toggleQueryValue={toggleQueryValue}
+        lodgingSortOptions={lodgingSortOptions}
+        sort={sort}
+      />
+
       <div className="list-body-grid">
         <div className="list-body-main">
-          <LodgingListToolbar
-            toolbarRef={toolbarRef}
-            activeFilterMenu={activeFilterMenu}
-            setActiveFilterMenu={setActiveFilterMenu}
-            filterSummary={filterSummary}
-            updateParams={updateParams}
-            availableOnly={availableOnly}
-            optionCounts={optionCounts}
-            type={type}
-            features={features}
-            priceBand={priceBand}
-            regionFilter={regionFilter}
-            tastes={tastes}
-            discounts={discounts}
-            grades={grades}
-            facilities={facilities}
-            toggleQueryValue={toggleQueryValue}
-            lodgingSortOptions={lodgingSortOptions}
-            sort={sort}
-          />
-
-          {selectedLodging && (
-            <div className="list-results-head" aria-live="polite">
-              <div className="list-results-head-copy">
-                <span className="list-results-label">선택 숙소</span>
-                <strong>{selectedLodging.name}</strong>
-              </div>
-              <span>{selectedLodgingSummary}</span>
-            </div>
-          )}
-
           {loadState === "loading" ? (
             <section className="lodging-results">
               <div className="lodging-results lodging-results-grid-skeleton" aria-hidden="true">

@@ -1280,6 +1280,7 @@
   display: grid;
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
   gap: 22px;
+  align-items: start;
 }
 
 .text-link {
@@ -1402,11 +1403,19 @@
 .inquiry-thread-panel {
   display: grid;
   gap: 18px;
+  position: sticky;
+  top: 24px;
+  align-self: start;
   padding: 22px;
   border-radius: 24px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 251, 250, 0.95));
   border: 1px solid rgba(29, 38, 31, 0.08);
   box-shadow: 0 14px 30px rgba(17, 24, 39, 0.04);
+  align-content: start;
+}
+
+.inquiry-thread-chips {
+  justify-content: flex-start;
 }
 
 .inquiry-thread-head {
@@ -1437,6 +1446,10 @@
 .inquiry-thread-list {
   display: grid;
   gap: 10px;
+  align-content: start;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
 .inquiry-message {
@@ -1445,6 +1458,7 @@
   max-width: min(100%, 540px);
   padding: 16px 18px;
   border-radius: 20px;
+  min-width: 0;
 }
 
 .inquiry-message.is-user {
@@ -1630,11 +1644,6 @@
   line-height: 1.6;
 }
 
-.detail-review-upload {
-  display: grid;
-  gap: 10px;
-}
-
 .detail-review-upload-button {
   display: inline-flex;
   align-items: center;
@@ -1671,9 +1680,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #697670;
-  font-size: 12px;
-  font-weight: 700;
+  margin-top: 2px;
 }
 
 .detail-review-submit {
@@ -3101,7 +3108,7 @@
   margin-top: 24px;
   border-top: 1px solid rgba(23, 36, 51, 0.08);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(245, 246, 240, 0.92));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 248, 243, 0.96));
 }
 
 .footer .footer-inner {
@@ -3111,7 +3118,7 @@
 
 .footer-brand-block {
   display: grid;
-  gap: 10px;
+  gap: 16px;
 }
 
 .footer-brand {
@@ -3120,43 +3127,60 @@
 
 .footer-brand-block p {
   margin: 0;
-  max-width: 440px;
-  color: var(--text-soft);
-  line-height: 1.7;
+  max-width: 640px;
+  color: #4f5d54;
+  font-size: 15px;
+  line-height: 1.72;
+  text-wrap: balance;
 }
 
 .footer-topline {
   display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(320px, 1.05fr) minmax(0, 0.95fr);
   align-items: start;
-  gap: 56px;
-  padding: 28px 0 24px;
+  gap: 72px;
+  padding: 44px 0 30px;
 }
 
 .footer-link-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(120px, 1fr));
-  gap: 24px;
+  gap: 32px;
 }
 
 .footer-link-block {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .footer-link-block strong {
-  font-size: 14px;
-  letter-spacing: -0.02em;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7a857f;
 }
 
 .footer-link-block a {
-  color: var(--text-soft);
+  color: #20352f;
   font-size: 14px;
   font-weight: 700;
+  line-height: 1.5;
 }
 
 .footer-link-block a:hover {
   color: #0b5d58;
+}
+
+.footer-service-note {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: #7a857f;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .footer-meta-group {
@@ -3164,8 +3188,8 @@
   gap: 14px;
   flex-wrap: wrap;
   align-items: center;
-  color: var(--text-soft);
-  font-size: 13px;
+  color: #5f6c66;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -3175,18 +3199,18 @@
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
-  padding: 18px 0 26px;
+  padding: 18px 0 30px;
   border-top: 1px solid rgba(23, 36, 51, 0.08);
-  color: var(--text-soft);
-  font-size: 13px;
+  color: #5f6c66;
+  font-size: 12px;
 }
 
 .footer-policy-links {
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
-  color: var(--text-soft);
-  font-size: 13px;
+  color: #5f6c66;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -4960,15 +4984,22 @@ ul {
 
   .list-search-bar {
     grid-template-columns: 1fr;
+    border-radius: 26px;
   }
 
   .list-search-field {
     border-right: 0;
-    border-bottom: 1px solid rgba(29, 38, 31, 0.08);
+    border-bottom: 1px solid rgba(17, 29, 24, 0.08);
+  }
+
+  .list-search-field + .list-search-field::before {
+    content: none;
   }
 
   .list-search-submit {
-    border-radius: 0 0 24px 24px;
+    min-height: 56px;
+    margin: 6px 0 0;
+    border-radius: 18px;
   }
 
   .booking-date-grid {
@@ -5359,65 +5390,43 @@ ul {
 .my-home-overview-item {
   background: rgba(255, 255, 255, 0.82);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .my-home-overview-item::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  border-radius: 0 0 4px 4px;
+  content: none;
 }
 
-/* Item 1 — Teal (예약) */
 .my-home-overview-item:nth-child(1) {
-  background: linear-gradient(160deg, rgba(13, 111, 104, 0.07), rgba(255, 255, 255, 0.88));
-  border-color: rgba(13, 111, 104, 0.14);
-}
-.my-home-overview-item:nth-child(1)::after {
-  background: linear-gradient(90deg, #0d7d75, #27c4bc);
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(19, 53, 47, 0.08);
 }
 .my-home-overview-item:nth-child(1) strong {
-  color: var(--primary-dark);
+  color: #17231d;
 }
 
-/* Item 2 — Blue (문의) */
 .my-home-overview-item:nth-child(2) {
-  background: linear-gradient(160deg, rgba(37, 99, 235, 0.06), rgba(255, 255, 255, 0.88));
-  border-color: rgba(37, 99, 235, 0.12);
-}
-.my-home-overview-item:nth-child(2)::after {
-  background: linear-gradient(90deg, #2563eb, #93c5fd);
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(19, 53, 47, 0.08);
 }
 .my-home-overview-item:nth-child(2) strong {
-  color: #1d4ed8;
+  color: #17231d;
 }
 
-/* Item 3 — Emerald (숙소/재입실) */
 .my-home-overview-item:nth-child(3) {
-  background: linear-gradient(160deg, rgba(5, 150, 105, 0.06), rgba(255, 255, 255, 0.88));
-  border-color: rgba(5, 150, 105, 0.12);
-}
-.my-home-overview-item:nth-child(3)::after {
-  background: linear-gradient(90deg, #059669, #34d399);
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(19, 53, 47, 0.08);
 }
 .my-home-overview-item:nth-child(3) strong {
-  color: #047857;
+  color: #17231d;
 }
 
-/* Item 4 — Amber (관심/찜) */
 .my-home-overview-item:nth-child(4) {
-  background: linear-gradient(160deg, rgba(245, 158, 11, 0.07), rgba(255, 255, 255, 0.88));
-  border-color: rgba(245, 158, 11, 0.14);
-}
-.my-home-overview-item:nth-child(4)::after {
-  background: linear-gradient(90deg, #d97706, #fcd34d);
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(19, 53, 47, 0.08);
 }
 .my-home-overview-item:nth-child(4) strong {
-  color: #92400e;
+  color: #17231d;
 }
 
 /* Shortcut cards: base */

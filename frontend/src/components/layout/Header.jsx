@@ -7,7 +7,7 @@ import { getMyHome } from "../../services/mypageService";
 
 const PRIMARY_NAV_ITEMS = [
   { label: "숙소 탐색", to: "/lodgings", match: (pathname, search) => pathname.startsWith("/lodgings") && !search.includes("theme=deal") },
-  { label: "오늘 특가", to: "/lodgings?theme=deal", match: (pathname, search) => pathname === "/lodgings" && search.includes("theme=deal") },
+  { label: "오늘 특가", to: "/events", match: (pathname) => pathname === "/events" },
   { label: "예약 내역", to: "/my/bookings", match: (pathname) => pathname.startsWith("/my/bookings") },
 ];
 

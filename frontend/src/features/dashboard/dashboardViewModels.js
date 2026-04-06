@@ -2,6 +2,49 @@ function formatMetricValue(value) {
   return String(value ?? 0).padStart(2, "0");
 }
 
+function getSellerReservationState(status) {
+  if (status === "CONFIRMED") {
+    return {
+      label: "체크인 예정",
+      tone: "normal",
+      actionLabel: "예약 확인",
+      riskLabel: "정상",
+    };
+  }
+
+  if (status === "PENDING") {
+    return {
+      label: "결제 확인 필요",
+      tone: "warning",
+      actionLabel: "결제 확인",
+      riskLabel: "경고",
+    };
+  }
+
+  return {
+    label: "취소 확인 필요",
+    tone: "danger",
+    actionLabel: "취소 확인",
+    riskLabel: "위험",
+  };
+}
+
+function getSellerLodgingState(status) {
+  if (status === "ACTIVE") {
+    return {
+      label: "운영 중",
+      tone: "normal",
+      actionLabel: "숙소 관리",
+    };
+  }
+
+  return {
+    label: "청소/정비 필요",
+    tone: "warning",
+    actionLabel: "상태 점검",
+  };
+}
+
 export function getAdminDashboardViewModel({ users, sellers, adminInquiries, adminTasks }) {
   const blockedUsers = users.filter((item) => item.status === "BLOCKED");
   const dormantUsers = users.filter((item) => item.status === "DORMANT");
@@ -139,6 +182,7 @@ export function getSellerDashboardViewModel({ reservations, lodgings, metrics, s
       },
     ],
     reservationRows: todayReservations.map((item) => ({
+      ...getSellerReservationState(item.status),
       no: item.no,
       guest: item.guest,
       status: item.status,
@@ -146,6 +190,7 @@ export function getSellerDashboardViewModel({ reservations, lodgings, metrics, s
       to: "/seller/reservations",
     })),
     lodgingRows: lodgings.map((lodging) => ({
+      ...getSellerLodgingState(lodging.status),
       region: lodging.region,
       name: lodging.name,
       status: lodging.status,

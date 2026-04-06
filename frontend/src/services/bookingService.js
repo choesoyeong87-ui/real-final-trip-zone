@@ -1,4 +1,5 @@
-import { post } from "../lib/appClient";
+import { get, post } from "../lib/appClient";
+import { readAuthSession } from "../features/auth/authSession";
 import {
   bookingChecklist,
   bookingPaymentOptions,
@@ -22,7 +23,27 @@ export function getBookingStatusNotes() {
 }
 
 export async function createBookingReservation(payload) {
-  return post("/api/mypage/bookings", payload);
+  const session = readAuthSession();
+  if (!session?.userNo) {
+    throw new Error("로그인 정보가 없습니다.");
+  }
+
+  const createResponse = await post("/api/booking/", {
+    ...payload,
+    userNo: session.userNo,
+  });
+
+  const bookingNo = createResponse?.result;
+  if (!bookingNo) {
+    throw new Error("예약 번호를 받지 못했습니다.");
+  }
+
+  const booking = await get(`/api/booking/${bookingNo}`);
+  return {
+    ...booking,
+    bookingNo,
+    bookingId: booking.bookingNo ?? bookingNo,
+  };
 }
 
 export async function createBookingPayment(payload) {

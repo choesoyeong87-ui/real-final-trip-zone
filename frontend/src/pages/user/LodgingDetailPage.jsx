@@ -578,21 +578,15 @@ export default function LodgingDetailPage() {
           />
         ))}
       </div>
-      <div className="detail-photo-meta">
-        <strong>{photoIndex} / {galleryImages.length}</strong>
-        <span>{selectedRoom ? `${selectedRoom.name} 객실 이미지` : lodging.name}</span>
-      </div>
+      <div className="detail-photo-meta" />
 
       <section className="detail-grid">
         <section className="detail-main">
           <div className="detail-overview-stage">
             <div className="detail-headline detail-headline-editorial">
               <span className="small-label">숙소 개요</span>
-              <h2>{lodging.name}</h2>
-              <p>{lodging.address} · 위치, 객실 구성, 체크인 흐름을 한 화면에서 바로 판단할 수 있게 정리했습니다.</p>
             </div>
             <div className="detail-overview-copy">
-              <p className="detail-overview-lead">{propertyStory[0] ?? lodging.intro}</p>
               <div className="detail-overview-inline">
                 <div>
                   <span>추천 이유</span>
@@ -646,7 +640,6 @@ export default function LodgingDetailPage() {
             <div className="detail-headline">
               <span className="small-label">이용 가이드</span>
               <h2>예약 전에 보면 좋은 운영 정보</h2>
-              <p>현장에서 다시 확인하지 않도록 자주 묻는 조건만 추려서 정리했습니다.</p>
             </div>
             <div className="detail-guide-list">
               <div className="detail-guide-item">

@@ -66,9 +66,9 @@ export function DashboardHero({
     <header className={`opsdash-hero${compact ? " is-compact" : ""}`}>
       <div className="opsdash-hero-main">
         <div className="opsdash-hero-copy">
-          <p className="eyebrow">{eyebrow}</p>
+          {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
           <h1>{title}</h1>
-          <p>{description}</p>
+          {description ? <p>{description}</p> : null}
         </div>
         <nav className="opsdash-hero-nav" aria-label={ariaLabel}>
           {links.map((item) => (
@@ -180,7 +180,7 @@ export function DashboardPanel({ eyebrow, title, action, tone = "default", child
     <section className={classes}>
       <div className="opsdash-section-head">
         <div>
-          <span>{eyebrow}</span>
+          {eyebrow ? <span>{eyebrow}</span> : null}
           <h2>{title}</h2>
         </div>
         {action ? (

@@ -30,6 +30,7 @@ export default function SellerInquiriesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [draft, setDraft] = useState("");
   const unsubscribeRef = useRef(() => {});
+  const threadListRef = useRef(null);
 
   const selectedRoom = useMemo(
     () => inquiryRooms.find((room) => room.id === selectedRoomId) ?? inquiryRooms[0] ?? null,
@@ -99,6 +100,15 @@ export default function SellerInquiriesPage() {
     };
   }, [selectedRoom?.id]);
 
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      if (!threadListRef.current) return;
+      threadListRef.current.scrollTop = threadListRef.current.scrollHeight;
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [messages, selectedRoom?.id]);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     const body = draft.trim();
@@ -113,6 +123,7 @@ export default function SellerInquiriesPage() {
   };
 
   const handleDraftKeyDown = (event) => {
+    if (event.nativeEvent?.isComposing || event.keyCode === 229) return;
     if (event.key !== "Enter" || event.shiftKey) return;
     event.preventDefault();
     event.currentTarget.form?.requestSubmit();
@@ -120,18 +131,6 @@ export default function SellerInquiriesPage() {
 
   return (
     <DashboardLayout role="seller">
-      <div className="dash-page-header">
-        <div className="dash-page-header-copy">
-          <p className="eyebrow">문의 운영</p>
-          <h1>문의 관리</h1>
-        </div>
-        <div className="dash-chips">
-          <span className="dash-chip is-warning">접수 {inquiryRooms.filter((r) => r.status === "OPEN" || r.status === "WAITING").length}건</span>
-          <span className="dash-chip is-accent">답변 완료 {inquiryRooms.filter((r) => r.status === "ANSWERED").length}건</span>
-          <span className="dash-chip">종료 {inquiryRooms.filter((r) => r.status === "CLOSED").length}건</span>
-        </div>
-      </div>
-
       <section className="inquiry-layout">
         <aside className="inquiry-room-list">
           {isLoading ? (
@@ -174,6 +173,11 @@ export default function SellerInquiriesPage() {
         </aside>
 
         <section className="inquiry-thread-panel">
+          <div className="dash-chips inquiry-thread-chips">
+            <span className="dash-chip is-warning">접수 {inquiryRooms.filter((r) => r.status === "OPEN" || r.status === "WAITING").length}건</span>
+            <span className="dash-chip is-accent">답변 완료 {inquiryRooms.filter((r) => r.status === "ANSWERED").length}건</span>
+            <span className="dash-chip">종료 {inquiryRooms.filter((r) => r.status === "CLOSED").length}건</span>
+          </div>
           <div className="inquiry-thread-head">
             <div>
               <p className="eyebrow">{typeLabel[selectedRoom?.type] ?? "문의"}</p>
@@ -185,7 +189,7 @@ export default function SellerInquiriesPage() {
             </div>
           </div>
 
-          <div className="inquiry-thread-list">
+          <div ref={threadListRef} className="inquiry-thread-list">
             {!messages.length ? (
               <div className="my-empty-panel">
                 <strong>아직 문의 메시지가 없습니다.</strong>
