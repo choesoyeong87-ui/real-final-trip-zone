@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DataTable from "../../components/common/DataTable";
-import { deleteAdminSeller, getAdminSellers, updateAdminSellerStatus } from "../../services/dashboardService";
+import { toUserFacingErrorMessage } from "../../lib/appClient";
+import { getAdminSellers, updateAdminSellerStatus } from "../../services/dashboardService";
 
 const columns = [
   { key: "business", label: "상호명" },
@@ -15,7 +16,7 @@ export default function AdminSellersPage() {
   const [selectedSellerId, setSelectedSellerId] = useState(null);
   const [notice, setNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const selectedSeller = rows.find((row) => row.id === selectedSellerId) ?? rows[0];
+  const selectedSeller = rows.find((row) => row.id === selectedSellerId) ?? rows[0] ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -27,6 +28,7 @@ export default function AdminSellersPage() {
         if (cancelled) return;
         setRows(nextRows);
         setSelectedSellerId(nextRows[0]?.id ?? null);
+        setNotice("");
       } catch (error) {
         if (cancelled) return;
         console.error("Failed to load admin sellers.", error);
@@ -53,35 +55,15 @@ export default function AdminSellersPage() {
       setSelectedSellerId(nextRows.find((row) => row.id === selectedSeller.id)?.id ?? nextRows[0]?.id ?? null);
       setNotice("판매자 상태를 변경했습니다.");
     } catch (error) {
-      setNotice(error.message);
-    }
-  };
-
-  const removeSeller = async () => {
-    if (!selectedSeller) return;
-    try {
-      const nextRows = await deleteAdminSeller(selectedSeller.id);
-      setRows(nextRows);
-      setSelectedSellerId(nextRows[0]?.id ?? null);
-      setNotice("판매자 신청 이력을 삭제했습니다.");
-    } catch (error) {
-      setNotice(error.message);
+      setNotice(toUserFacingErrorMessage(error, "판매자 상태를 변경하지 못했습니다."));
     }
   };
 
   return (
     <DashboardLayout role="admin">
-      <div className="dash-page-header">
-        <div className="dash-page-header-copy">
-          <p className="eyebrow">판매자 운영</p>
-          <h1>판매자 관리</h1>
-          <p>대기 {rows.filter((r) => r.status === "PENDING").length} · 승인 {rows.filter((r) => r.status === "APPROVED").length} · 중지 {rows.filter((r) => r.status === "SUSPENDED").length}</p>
-          {notice ? <p>{notice}</p> : null}
-        </div>
-      </div>
-
-      <div className="dash-table-split">
-        <section className="dash-content-section" style={{ marginBottom: 0 }}>
+      {notice ? <div className="my-empty-inline">{notice}</div> : null}
+      <div className="saas-bento-split seller-crud-split">
+        <section className="saas-bento-panel seller-crud-table-section">
           {isLoading ? <div className="my-empty-inline">판매자 목록을 불러오는 중입니다.</div> : null}
           <DataTable
             columns={columns}
@@ -92,43 +74,61 @@ export default function AdminSellersPage() {
           />
         </section>
 
-        <div className="dash-action-sheet admin-seller-sheet">
-          <h3>{selectedSeller?.business ?? "—"}</h3>
-          <p>{selectedSeller?.owner} · {selectedSeller?.region}</p>
-          <div className="dash-action-grid">
-            <button type="button" className="dash-action-btn is-primary" onClick={() => updateStatus("ACTIVE")} disabled={!selectedSeller}>복구</button>
-            <button type="button" className="dash-action-btn is-primary" onClick={() => updateStatus("APPROVED")} disabled={!selectedSeller}>승인</button>
-            <button type="button" className="dash-action-btn is-danger" onClick={() => updateStatus("REJECTED")} disabled={!selectedSeller}>반려</button>
-            <button type="button" className="dash-action-btn is-danger" onClick={() => updateStatus("SUSPENDED")} disabled={!selectedSeller}>중지</button>
-            <button type="button" className="dash-action-btn is-danger is-subtle" onClick={removeSeller} disabled={!selectedSeller}>삭제</button>
+        <aside className="saas-bento-panel">
+          <div className="saas-bento-head">
+            <strong>{selectedSeller?.business ?? "판매자를 선택해 주세요"}</strong>
+            {selectedSeller ? <p>{selectedSeller.owner} · {selectedSeller.region}</p> : null}
           </div>
-          {selectedSeller ? (
-            <div className="dash-detail-grid admin-seller-detail-grid">
-              <div className="dash-detail-item">
-                <span>사업자번호</span>
-                <strong>{selectedSeller.businessNo || "-"}</strong>
-              </div>
-              <div className="dash-detail-item">
-                <span>정산 계좌</span>
-                <strong>{selectedSeller.account || "-"}</strong>
-              </div>
-              <div className="dash-detail-item">
-                <span>신청일</span>
-                <strong>{selectedSeller.submittedAt || "-"}</strong>
-              </div>
-              <div className="dash-detail-item">
-                <span>최근 수정</span>
-                <strong>{selectedSeller.updatedAt || "-"}</strong>
-              </div>
-              {selectedSeller.rejectReason ? (
-                <div className="dash-detail-item dash-detail-item-wide">
-                  <span>반려 사유</span>
-                  <strong>{selectedSeller.rejectReason}</strong>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+          <div className="dash-chips">
+            <span className="dash-chip is-warning">승인 대기 {rows.filter((row) => row.status === "PENDING").length}건</span>
+            <span className="dash-chip is-accent">승인 {rows.filter((row) => row.status === "APPROVED").length}건</span>
+            <span className="dash-chip is-danger">중지 {rows.filter((row) => row.status === "SUSPENDED").length}건</span>
+          </div>
+          <div className="saas-form-actions saas-form-actions-start">
+            <button type="button" className="saas-btn-primary" onClick={() => updateStatus("ACTIVE")} disabled={!selectedSeller}>
+              복구
+            </button>
+            <button type="button" className="saas-btn-primary" onClick={() => updateStatus("APPROVED")} disabled={!selectedSeller}>
+              승인
+            </button>
+            <button type="button" className="saas-btn-danger" onClick={() => updateStatus("REJECTED")} disabled={!selectedSeller}>
+              반려
+            </button>
+            <button type="button" className="saas-btn-danger" onClick={() => updateStatus("SUSPENDED")} disabled={!selectedSeller}>
+              중지
+            </button>
+          </div>
+          <form className="saas-create-form-grid" onSubmit={(event) => event.preventDefault()}>
+            <label className="saas-field">
+              <span>상호명</span>
+              <input value={selectedSeller?.business ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>대표자</span>
+              <input value={selectedSeller?.owner ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>사업자번호</span>
+              <input value={selectedSeller?.businessNo ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>정산 계좌</span>
+              <input value={selectedSeller?.account ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>신청일</span>
+              <input value={selectedSeller?.submittedAt ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>최근 수정</span>
+              <input value={selectedSeller?.updatedAt ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>반려 사유</span>
+              <textarea rows={4} value={selectedSeller?.rejectReason ?? ""} readOnly />
+            </label>
+          </form>
+        </aside>
       </div>
     </DashboardLayout>
   );

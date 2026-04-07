@@ -73,8 +73,8 @@ export default function MyMileagePage() {
         </div>
         {filteredRows.length ? (
           <div className="payment-row-list mileage-row-list">
-            {filteredRows.map((item) => (
-            <article key={`${item.label}-${item.time}`} className="payment-row mileage-row">
+            {filteredRows.map((item, index) => (
+            <article key={`${item.label}-${item.time}-${item.amount}-${index}`} className="payment-row mileage-row">
               <div className="payment-row-main">
                 <div className="payment-row-copy">
                   <div className="payment-row-topline">
@@ -84,7 +84,7 @@ export default function MyMileagePage() {
                     <span>{item.time}</span>
                   </div>
                 <strong>{item.label}</strong>
-                <p>{item.type === "사용" ? "예약 결제에 사용된 마일리지 내역입니다." : "예약과 활동으로 적립된 마일리지입니다."}</p>
+                <p>{item.type === "사용" || item.type === "사용 복구" ? "예약 결제에 사용되거나 복구된 마일리지 내역입니다." : "예약과 활동으로 적립된 마일리지입니다."}</p>
               </div>
               </div>
               <div className="payment-row-side mileage-row-side">

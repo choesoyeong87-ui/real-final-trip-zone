@@ -37,9 +37,8 @@ export function RoomOptionsSection({ lodging, roomOptions, selectedRoom, onSelec
   return (
     <section className="detail-review-section">
       <div className="detail-headline">
-        <span className="small-label">객실 셀렉션</span>
+        <span className="small-label">객실 선택</span>
         <h2>지금 고를 수 있는 객실</h2>
-        <p>체크인 동선, 포함 혜택, 기본 요금을 비교하고 바로 예약 단계로 이어지게 정리했습니다.</p>
       </div>
       {!roomOptions.length ? (
         <div className="list-empty-state">
@@ -90,7 +89,19 @@ export function RoomOptionsSection({ lodging, roomOptions, selectedRoom, onSelec
   );
 }
 
-export function ReviewSection({ authSession, canWriteReview, galleryImages, lodging, reviewAverage, reviewDraft, reviews, onChangeDraft, onSubmit, onImageChange }) {
+export function ReviewSection({
+  authSession,
+  canWriteReview,
+  lodging,
+  reviewAverage,
+  reviewDraft,
+  reviews,
+  onChangeDraft,
+  onSubmit,
+  onImageChange,
+  onEdit,
+  onDelete,
+}) {
   return (
     <section className="detail-review-section">
       <div className="detail-headline">
@@ -101,6 +112,46 @@ export function ReviewSection({ authSession, canWriteReview, galleryImages, lodg
         <span className="accent-rating">★ {reviewAverage}</span>
         <span>{lodging.reviewCount}</span>
       </div>
+      {authSession && canWriteReview ? (
+        <form className="detail-review-form" onSubmit={onSubmit}>
+          <div className="detail-review-form-head">
+            <strong>{reviewDraft.reviewId ? "후기 수정" : "후기 작성"}</strong>
+            <div className="detail-review-stars" role="radiogroup" aria-label="별점 선택">
+              {renderInteractiveStars(reviewDraft.score, (score) => onChangeDraft({ score }))}
+            </div>
+          </div>
+          <textarea className="detail-review-textarea" rows="4" placeholder="객실 상태, 위치, 서비스 경험을 남겨보세요." value={reviewDraft.body} onChange={(event) => onChangeDraft({ body: event.target.value })} />
+          <div className="detail-review-form-foot">
+            <label className="detail-review-upload-button">
+              사진 첨부
+              <input type="file" accept="image/*" multiple onChange={onImageChange} hidden />
+            </label>
+            <button type="submit" className="primary-button detail-review-submit">
+              {reviewDraft.reviewId ? "후기 저장" : "후기 등록"}
+            </button>
+          </div>
+          {reviewDraft.images.length ? (
+            <div className="detail-review-upload-preview">
+              {reviewDraft.images.map((image) => (
+                <div key={image.fileName} className="detail-review-upload-thumb" style={{ backgroundImage: `url(${image.previewUrl})` }} />
+              ))}
+            </div>
+          ) : null}
+        </form>
+      ) : authSession ? (
+        <div className="detail-review-gate">
+          <strong>숙박 완료 후 후기 작성 가능</strong>
+          <p>후기 작성은 해당 숙소의 숙박 완료 내역이 있는 회원만 이용할 수 있습니다.</p>
+        </div>
+      ) : (
+        <div className="detail-review-gate">
+          <strong>로그인 후 후기 작성 가능</strong>
+          <p>후기 작성은 로그인 후 이용할 수 있습니다.</p>
+          <Link className="secondary-button" to="/login">
+            로그인하기
+          </Link>
+        </div>
+      )}
       <div className="detail-review-list">
         {reviews.map((item, index) => (
           <article key={item.id ?? `${item.author}-${item.stay}-${index}`} className="detail-review-item">
@@ -112,58 +163,26 @@ export function ReviewSection({ authSession, canWriteReview, galleryImages, lodg
               </span>
             </div>
             <p>{item.body}</p>
-            <div className="detail-review-gallery">
-              {(item.images?.length ? item.images : galleryImages.slice(0, 2)).map((image, imageIndex) => (
-                <div
-                  key={`${item.id ?? item.author}-${imageIndex}`}
-                  className="detail-review-thumb"
-                  style={{ backgroundImage: `url(${image}${item.images?.length ? "" : index === 1 ? "&sat=6" : ""})` }}
-                />
-              ))}
-            </div>
-          </article>
-        ))}
-      </div>
-      {canWriteReview ? (
-        <form className="detail-review-form" onSubmit={onSubmit}>
-          <div className="detail-review-form-head">
-            <strong>후기 작성</strong>
-            <div className="detail-review-stars" role="radiogroup" aria-label="별점 선택">
-              {renderInteractiveStars(reviewDraft.score, (score) => onChangeDraft({ score }))}
-            </div>
-          </div>
-          <textarea className="detail-review-textarea" rows="4" placeholder="객실 상태, 위치, 서비스 경험을 남겨보세요." value={reviewDraft.body} onChange={(event) => onChangeDraft({ body: event.target.value })} />
-          <div className="detail-review-upload">
-            <label className="detail-review-upload-button">
-              사진 첨부
-              <input type="file" accept="image/*" multiple onChange={onImageChange} hidden />
-            </label>
-            {reviewDraft.images.length ? (
-              <div className="detail-review-upload-preview">
-                {reviewDraft.images.map((image) => (
-                  <div key={image} className="detail-review-upload-thumb" style={{ backgroundImage: `url(${image})` }} />
+            {authSession?.userNo && Number(authSession.userNo) === Number(item.userNo) ? (
+              <div className="saas-form-actions saas-form-actions-start">
+                <button type="button" className="saas-btn-ghost" onClick={() => onEdit(item)}>후기 수정</button>
+                <button type="button" className="saas-btn-danger" onClick={() => onDelete(item)}>후기 삭제</button>
+              </div>
+            ) : null}
+            {item.imageUrls?.length ? (
+              <div className="detail-review-gallery">
+                {item.imageUrls.map((image, imageIndex) => (
+                  <div
+                    key={`${item.id ?? item.author}-${imageIndex}`}
+                    className="detail-review-thumb"
+                    style={{ backgroundImage: `url(${image})` }}
+                  />
                 ))}
               </div>
             ) : null}
-          </div>
-          <div className="detail-review-form-foot">
-            <span>{reviewDraft.body.trim().length}자</span>
-            <button type="submit" className="primary-button detail-review-submit">
-              후기 등록
-            </button>
-          </div>
-        </form>
-      ) : (
-        reviews.length === 0 && (
-          <div className="detail-review-gate">
-            <strong>{authSession ? "숙박 완료 예약 후 후기 작성 가능" : "로그인 후 후기 작성 가능"}</strong>
-            <p>{authSession ? "숙박을 완료한 예약에 대해서만 후기를 등록할 수 있습니다." : "후기 작성은 로그인 후 이용할 수 있습니다."}</p>
-            <Link className="secondary-button" to={authSession ? "/my/bookings" : "/login"}>
-              {authSession ? "내 예약에서 완료 내역 보기" : "로그인하기"}
-            </Link>
-          </div>
-        )
-      )}
+          </article>
+        ))}
+      </div>
     </section>
   );
 }

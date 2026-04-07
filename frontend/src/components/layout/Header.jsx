@@ -3,13 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { readAuthSession } from "../../features/auth/authSession";
 import { getHeaderRoleLinks, getMembershipLabel, logoutCurrentSession } from "../../features/auth/authViewModels";
 import { formatMembershipLabel } from "../../features/mypage/mypageViewModels";
-import { getMyHome } from "../../services/mypageService";
-
-const PRIMARY_NAV_ITEMS = [
-  { label: "숙소 탐색", to: "/lodgings", match: (pathname, search) => pathname.startsWith("/lodgings") && !search.includes("theme=deal") },
-  { label: "오늘 특가", to: "/lodgings?theme=deal", match: (pathname, search) => pathname === "/lodgings" && search.includes("theme=deal") },
-  { label: "예약 내역", to: "/my/bookings", match: (pathname) => pathname.startsWith("/my/bookings") },
-];
+import { getCachedMyHomeSnapshot, getMyHome, invalidateMyPageCaches } from "../../services/mypageService";
 
 export default function Header() {
   const location = useLocation();
@@ -17,7 +11,7 @@ export default function Header() {
   const isHome = location.pathname === "/";
   const [session, setSession] = useState(() => readAuthSession());
   const [menuOpen, setMenuOpen] = useState(false);
-  const [homeSnapshot, setHomeSnapshot] = useState(null);
+  const [homeSnapshot, setHomeSnapshot] = useState(() => getCachedMyHomeSnapshot());
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -48,7 +42,7 @@ export default function Header() {
     return () => {
       cancelled = true;
     };
-  }, [location.pathname, location.search, session?.role]);
+  }, [session?.role]);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -63,6 +57,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     await logoutCurrentSession();
+    invalidateMyPageCaches();
     setSession(readAuthSession());
     setMenuOpen(false);
     navigate("/");
@@ -109,18 +104,6 @@ export default function Header() {
               <span className="brand-sub">stay and travel</span>
             </span>
           </Link>
-          {!isHome ? (
-            <nav className="header-nav" aria-label="주요 메뉴">
-              {PRIMARY_NAV_ITEMS.map((item) => {
-                const isActive = item.match(location.pathname, location.search);
-                return (
-                  <Link key={item.label} className={`nav-chip${isActive ? " active" : ""}`} to={item.to}>
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          ) : null}
         </div>
         <div className="header-utility">
           {session ? (

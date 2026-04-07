@@ -19,6 +19,7 @@ import {
   getBookingPaymentOptions,
   getBookingStatusNotes,
 } from "../../services/bookingService";
+import { toUserFacingErrorMessage } from "../../lib/appClient";
 import { getLodgingDetailById } from "../../services/lodgingService";
 import { fetchMyCoupons, getMyMileage } from "../../services/mypageService";
 
@@ -254,7 +255,7 @@ export default function BookingPage() {
       if (message.includes("403") || message.includes("Forbidden")) {
         setSubmitError("예약은 일반 회원 계정에서만 진행할 수 있습니다.");
       } else {
-        setSubmitError(message || "예약 생성에 실패했습니다.");
+        setSubmitError(toUserFacingErrorMessage(error, "예약 생성에 실패했습니다."));
       }
     } finally {
       setIsSubmitting(false);

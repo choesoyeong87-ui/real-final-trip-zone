@@ -6,28 +6,49 @@ import {
   filterBookingRows,
   getBookingTabSummary,
 } from "../../features/mypage/mypageViewModels";
-import { getLodgings } from "../../services/lodgingService";
+import { getCachedLodgingsSnapshot, getLodgings, LODGING_FALLBACK_IMAGE } from "../../services/lodgingService";
 import { getMyBookings } from "../../services/mypageService";
 
+const MY_BOOKINGS_CACHE_KEY = "tripzone-my-bookings";
+
+function readMyBookingsCache() {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = window.sessionStorage.getItem(MY_BOOKINGS_CACHE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function MyBookingsPage() {
+  const cachedLodgings = getCachedLodgingsSnapshot();
+  const cachedBookings = readMyBookingsCache();
   const [tab, setTab] = useState("upcoming");
-  const [lodgings, setLodgings] = useState([]);
-  const [myBookingRows, setMyBookingRows] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [lodgings, setLodgings] = useState(cachedLodgings);
+  const [myBookingRows, setMyBookingRows] = useState(cachedBookings);
+  const [isLoading, setIsLoading] = useState(!(cachedLodgings.length && cachedBookings.length));
   const { upcomingCount, completedCount } = getBookingTabSummary(myBookingRows);
   const filteredRows = filterBookingRows(myBookingRows, tab);
   const lodgingMap = useMemo(() => Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging])), [lodgings]);
+  const formatMeta = (...parts) => parts.filter((part) => typeof part === "string" && part.trim()).join(" · ");
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadBookingScreen() {
       try {
-        setIsLoading(true);
+        if (!(cachedLodgings.length && cachedBookings.length)) {
+          setIsLoading(true);
+        }
         const [rows, bookingRows] = await Promise.all([getLodgings(), getMyBookings()]);
         if (cancelled) return;
         setLodgings(rows);
         setMyBookingRows(bookingRows);
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(MY_BOOKINGS_CACHE_KEY, JSON.stringify(bookingRows));
+        }
       } catch (error) {
         console.error("Failed to load booking lodgings.", error);
       } finally {
@@ -99,16 +120,23 @@ export default function MyBookingsPage() {
           {filteredRows.map((item) => (
             <article key={item.bookingId} className="booking-list-row">
               <div className="booking-list-media">
-                <img src={lodgingMap[item.lodgingId]?.image} alt={item.name} />
+                <img
+                  src={lodgingMap[item.lodgingId]?.image}
+                  alt={item.name}
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = LODGING_FALLBACK_IMAGE;
+                  }}
+                />
               </div>
               <div className="booking-list-main">
                 <div className="booking-list-copy">
                   <div className="payment-row-topline">
                     <span>{tab === "completed" ? "이용 일정" : "예약 일정"} {item.stay}</span>
-                    <span>{lodgingMap[item.lodgingId]?.region} · {lodgingMap[item.lodgingId]?.district}</span>
+                    <span>{formatMeta(lodgingMap[item.lodgingId]?.region, lodgingMap[item.lodgingId]?.district)}</span>
                   </div>
                   <strong>{item.name}</strong>
-                  <p>{lodgingMap[item.lodgingId]?.type} · {lodgingMap[item.lodgingId]?.room}</p>
+                  <p>{formatMeta(lodgingMap[item.lodgingId]?.type, lodgingMap[item.lodgingId]?.room)}</p>
                 </div>
               </div>
               <div className="booking-list-side">

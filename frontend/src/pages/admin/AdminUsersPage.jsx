@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DataTable from "../../components/common/DataTable";
-import { getAdminUsers, updateAdminUserStatus } from "../../services/dashboardService";
+import { toUserFacingErrorMessage } from "../../lib/appClient";
+import { getAdminUserDetail, getAdminUsers, updateAdminUserStatus } from "../../services/dashboardService";
 
 const columns = [
   { key: "name", label: "회원명" },
@@ -15,7 +16,8 @@ export default function AdminUsersPage() {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [notice, setNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const selectedUser = rows.find((row) => row.id === selectedUserId) ?? rows[0];
+  const [detail, setDetail] = useState(null);
+  const selectedUser = rows.find((row) => row.id === selectedUserId) ?? rows[0] ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -27,6 +29,7 @@ export default function AdminUsersPage() {
         if (cancelled) return;
         setRows(nextRows);
         setSelectedUserId(nextRows[0]?.id ?? null);
+        setNotice("");
       } catch (error) {
         if (cancelled) return;
         console.error("Failed to load admin users.", error);
@@ -45,6 +48,32 @@ export default function AdminUsersPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDetail() {
+      if (!selectedUserId) {
+        setDetail(null);
+        return;
+      }
+
+      try {
+        const nextDetail = await getAdminUserDetail(selectedUserId);
+        if (cancelled) return;
+        setDetail(nextDetail);
+      } catch {
+        if (cancelled) return;
+        setDetail(null);
+      }
+    }
+
+    loadDetail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedUserId]);
+
   const updateStatus = async (nextStatus) => {
     if (!selectedUser) return;
     try {
@@ -52,23 +81,15 @@ export default function AdminUsersPage() {
       setRows((current) => current.map((row) => (row.id === updatedUser.id ? updatedUser : row)));
       setNotice("회원 상태를 변경했습니다.");
     } catch (error) {
-      setNotice(error.message);
+      setNotice(toUserFacingErrorMessage(error, "회원 상태를 변경하지 못했습니다."));
     }
   };
 
   return (
     <DashboardLayout role="admin">
-      <div className="dash-page-header">
-        <div className="dash-page-header-copy">
-          <p className="eyebrow">회원 운영</p>
-          <h1>회원 관리</h1>
-          <p>총 {rows.length}명 · 활성 {rows.filter((r) => r.status === "ACTIVE").length} · 차단 {rows.filter((r) => r.status === "BLOCKED").length}</p>
-          {notice ? <p>{notice}</p> : null}
-        </div>
-      </div>
-
-      <div className="dash-table-split">
-        <section className="dash-content-section" style={{ marginBottom: 0 }}>
+      {notice ? <div className="my-empty-inline">{notice}</div> : null}
+      <div className="saas-bento-split seller-crud-split">
+        <section className="saas-bento-panel seller-crud-table-section">
           {isLoading ? <div className="my-empty-inline">회원 목록을 불러오는 중입니다.</div> : null}
           <DataTable
             columns={columns}
@@ -79,14 +100,55 @@ export default function AdminUsersPage() {
           />
         </section>
 
-        <div className="dash-action-sheet">
-          <h3>{selectedUser?.name ?? "—"}</h3>
-          <p>{selectedUser?.email}</p>
-          <div className="dash-action-grid">
-            <button type="button" className="dash-action-btn is-primary" onClick={() => updateStatus("ACTIVE")} disabled={!selectedUser}>활성</button>
-            <button type="button" className="dash-action-btn is-danger" onClick={() => updateStatus("BLOCKED")} disabled={!selectedUser}>차단</button>
+        <aside className="saas-bento-panel">
+          <div className="saas-bento-head">
+            <strong>{detail?.name ?? selectedUser?.name ?? "회원을 선택해 주세요"}</strong>
+            {selectedUser ? <p>{detail?.email ?? selectedUser.email}</p> : null}
           </div>
-        </div>
+          <div className="dash-chips">
+            <span className="dash-chip is-accent">활성 {rows.filter((row) => row.status === "ACTIVE").length}명</span>
+            <span className="dash-chip is-warning">휴면 {rows.filter((row) => row.status === "DORMANT").length}명</span>
+            <span className="dash-chip is-danger">차단 {rows.filter((row) => row.status === "BLOCKED").length}명</span>
+          </div>
+          <div className="saas-form-actions saas-form-actions-start">
+            <button type="button" className="saas-btn-primary" onClick={() => updateStatus("ACTIVE")} disabled={!selectedUser}>
+              활성
+            </button>
+            <button type="button" className="saas-btn-danger" onClick={() => updateStatus("BLOCKED")} disabled={!selectedUser}>
+              차단
+            </button>
+          </div>
+          <form className="saas-create-form-grid" onSubmit={(event) => event.preventDefault()}>
+            <label className="saas-field">
+              <span>회원명</span>
+              <input value={detail?.name ?? selectedUser?.name ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>이메일</span>
+              <input value={detail?.email ?? selectedUser?.email ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>권한</span>
+              <input value={detail?.role ?? selectedUser?.role ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>상태</span>
+              <input value={detail?.status ?? selectedUser?.status ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>전화번호</span>
+              <input value={detail?.phone ?? selectedUser?.phone ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>회원등급</span>
+              <input value={detail?.grade ?? selectedUser?.grade ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>마일리지</span>
+              <input value={`${Number(detail?.mileage ?? selectedUser?.mileage ?? 0).toLocaleString()}점`} readOnly />
+            </label>
+          </form>
+        </aside>
       </div>
     </DashboardLayout>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
-import { getLodgings } from "../../services/lodgingService";
+import { getLodgings, LODGING_FALLBACK_IMAGE } from "../../services/lodgingService";
 import { getMyBookingById, getMyPaymentByBookingId } from "../../services/mypageService";
 
 export default function MyBookingDetailPage() {
@@ -11,6 +11,7 @@ export default function MyBookingDetailPage() {
   const [payment, setPayment] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const lodgingMap = useMemo(() => Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging])), [lodgings]);
+  const formatMeta = (...parts) => parts.filter((part) => typeof part === "string" && part.trim()).join(" · ");
 
   useEffect(() => {
     let cancelled = false;
@@ -71,12 +72,19 @@ export default function MyBookingDetailPage() {
       <section className="booking-detail-sheet">
         <div className="booking-detail-top">
           <div className="booking-detail-visual">
-            <img src={lodging?.image} alt={booking.name} />
+            <img
+              src={lodging?.image}
+              alt={booking.name}
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = LODGING_FALLBACK_IMAGE;
+              }}
+            />
           </div>
           <div className="booking-detail-summary">
             <span className="small-label">예약 상세</span>
             <strong>{booking.name}</strong>
-            <p>{lodging?.district} · {lodging?.room}</p>
+            <p>{formatMeta(lodging?.district, lodging?.room)}</p>
             <div className="booking-detail-price">
               <span>결제 금액</span>
               <strong>{booking.price}</strong>
@@ -112,7 +120,7 @@ export default function MyBookingDetailPage() {
           </div>
           <div className="booking-detail-row">
             <span>위치</span>
-            <strong>{lodging?.region} · {lodging?.district}</strong>
+            <strong>{formatMeta(lodging?.region, lodging?.district)}</strong>
           </div>
           <div className="booking-detail-row">
             <span>체크인/체크아웃</span>

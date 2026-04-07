@@ -29,6 +29,12 @@ function formatMoney(value) {
   return `${numeric.toLocaleString()}원`;
 }
 
+function formatPercent(value) {
+  const numeric = Number(value ?? 0);
+  if (!Number.isFinite(numeric)) return "0%";
+  return `${Math.round(numeric * 100)}%`;
+}
+
 function formatDateRange(startDate, endDate) {
   if (!startDate || !endDate) return "-";
   const start = new Date(startDate);
@@ -64,6 +70,7 @@ function mapAdminUserDto(dto) {
     email: dto.email ?? "-",
     phone: dto.phone ?? "-",
     grade: dto.gradeName ?? "-",
+    mileage: Number(dto.mileage ?? 0),
   };
 }
 
@@ -160,14 +167,21 @@ function mapInquiryDto(dto, comments = []) {
 }
 
 function mapReservationDto(dto) {
+  const bookingNo = dto.bookingNo ?? dto.no ?? dto.id;
+  const guestName = dto.userName ?? dto.guestName ?? (dto.userNo ? `회원 ${dto.userNo}` : "-");
+  const lodgingName = dto.lodgingName ?? dto.accommodationName ?? "숙소 확인";
+  const roomName = dto.roomName ?? dto.productName ?? "객실 확인";
+
   return {
-    id: dto.bookingNo,
-    no: dto.bookingNo,
-    guest: dto.userNo ? `회원 ${dto.userNo}` : "-",
+    id: bookingNo,
+    no: bookingNo,
+    guest: guestName,
+    guestName,
+    lodging: lodgingName,
     stay: `${formatDateLabel(dto.checkInDate)} - ${formatDateLabel(dto.checkOutDate)}`,
     status: dto.status ?? "PENDING",
     amount: formatMoney(dto.totalPrice),
-    detail: `${dto.lodgingName ?? "숙소 확인"} · ${dto.roomName ?? "객실 확인"}`,
+    detail: `${lodgingName} · ${roomName}`,
   };
 }
 
@@ -193,6 +207,19 @@ function mapSellerLodgingDto(dto) {
     checkOutTime: dto.checkOutTime ?? "11:00",
     uploadFileNames: dto.uploadFileNames ?? [],
     rooms: dto.rooms ?? [],
+  };
+}
+
+function mapSellerLodgingSummaryDto(dto) {
+  return {
+    id: dto.lodgingNo,
+    name: dto.lodgingName ?? `숙소 ${dto.lodgingNo}`,
+    type: "-",
+    region: dto.region ?? "-",
+    status: dto.status ?? "INACTIVE",
+    roomCount: Number(dto.roomCount ?? 0),
+    occupancy: "-",
+    inquiryCount: 0,
   };
 }
 
@@ -227,6 +254,7 @@ function mapSellerAssetRows(lodging) {
         order: "1",
         status: "미등록",
         fileName: null,
+        isExternal: false,
       },
     ];
   }
@@ -239,6 +267,7 @@ function mapSellerAssetRows(lodging) {
     order: String(index + 1),
     status: index === 0 ? "대표 노출" : "일반 노출",
     fileName,
+    isExternal: /^https?:\/\//i.test(fileName),
   }));
 }
 
@@ -295,6 +324,11 @@ export async function getAdminUsers() {
   return extractRows(response).map(mapAdminUserDto);
 }
 
+export async function getAdminUserDetail(userNo) {
+  const response = await get(`/api/admin/admin/${userNo}/detail`);
+  return mapAdminUserDto(response);
+}
+
 export async function updateAdminUserStatus(userNo, nextStatus) {
   const response = await patch(`/api/admin/users/${userNo}/status`, {
     status: nextStatus,
@@ -338,6 +372,47 @@ export async function getAdminEvents() {
     ...extractRows(eventResponse).map(mapEventDto),
     ...couponRows.map(mapCouponDto),
   ];
+}
+
+export async function createAdminEvent(draft, imageFile) {
+  const session = readAuthSession();
+  const formData = new FormData();
+  formData.append("adminUser", String(session?.userNo ?? 1));
+  formData.append("title", draft.title);
+  formData.append("content", draft.content ?? "");
+  formData.append("startDate", draft.startDate);
+  formData.append("endDate", draft.endDate);
+  formData.append("status", draft.status ?? "DRAFT");
+  if (imageFile) {
+    formData.append("file", imageFile);
+  }
+
+  const response = await post("/api/event", formData);
+  const refreshed = await get(`/api/event/${response.eventNo}`);
+  return mapEventDto(refreshed);
+}
+
+export async function deleteAdminEvent(eventNo) {
+  await del(`/api/event/${eventNo}`);
+}
+
+export async function createAdminCoupon(payload) {
+  const session = readAuthSession();
+  const response = await post("/api/coupon", {
+    adminUser: Number(session?.userNo ?? 1),
+    couponName: payload.title,
+    discountType: payload.discountType,
+    discountValue: Number(payload.discountValue),
+    startDate: payload.startDate,
+    endDate: payload.endDate,
+    status: payload.status ?? "INACTIVE",
+  });
+  const refreshed = await get("/api/coupon/list");
+  return refreshed.map(mapCouponDto).find((item) => item.entityNo === response.couponNo) ?? null;
+}
+
+export async function deleteAdminCoupon(couponNo) {
+  await del(`/api/coupon/${couponNo}`);
 }
 
 export async function updateAdminEventStatus(currentEvent, nextStatus) {
@@ -419,6 +494,11 @@ export async function getAdminInquiries() {
   );
 }
 
+export async function getAdminDashboardInquiries() {
+  const inquiryResponse = await get("/api/inquiry/list?page=1&size=100");
+  return (inquiryResponse.dtoList ?? []).map((dto) => mapInquiryDto(dto));
+}
+
 export async function updateAdminInquiryStatus(inquiryNo, nextStatus) {
   const response = await patch(`/api/admin/inquiries/${inquiryNo}/status`, {
     status: nextStatus,
@@ -485,6 +565,38 @@ export function getAdminAuditLogs() {
 export async function getSellerLodgings() {
   const lodgings = await get("/api/seller/lodgings");
   return lodgings.map(mapSellerLodgingDto);
+}
+
+export async function getSellerDashboardLodgings() {
+  const lodgings = await get("/api/seller/lodgings/summary");
+  return lodgings.map(mapSellerLodgingSummaryDto);
+}
+
+export async function getSellerSalesSummary() {
+  const response = await get("/api/seller/sales-summary");
+  return {
+    totalSalesAmount: Number(response?.totalSalesAmount ?? 0),
+    totalBookingCount: Number(response?.totalBookingCount ?? 0),
+    canceledRatio: Number(response?.canceledRatio ?? 0),
+    lodgingTypeRatios: (response?.lodgingTypeRatios ?? []).map((item) => ({
+      lodgingType: item.lodgingType ?? "-",
+      lodgingCount: Number(item.lodgingCount ?? 0),
+    })),
+    lodgingTypeSales: (response?.lodgingTypeSales ?? []).map((item) => ({
+      lodgingType: item.lodgingType ?? "-",
+      salesAmount: Number(item.salesAmount ?? 0),
+      bookingCount: Number(item.bookingCount ?? 0),
+    })),
+    monthlySales: (response?.monthlySales ?? []).map((item) => ({
+      monthLabel: item.monthLabel ?? "-",
+      salesAmount: Number(item.salesAmount ?? 0),
+    })),
+    summaryCards: [
+      { label: "총판매액", value: formatMoney(response?.totalSalesAmount ?? 0) },
+      { label: "총예약수", value: `${Number(response?.totalBookingCount ?? 0)}건` },
+      { label: "취소비율", value: formatPercent(response?.canceledRatio ?? 0) },
+    ],
+  };
 }
 
 export async function createSellerLodging(payload) {
@@ -614,7 +726,9 @@ export async function deleteSellerRoom(roomId) {
 
 export async function getSellerAssets() {
   const lodgings = await getSellerLodgings();
-  return lodgings.flatMap(mapSellerAssetRows);
+  return lodgings
+    .filter((lodging) => lodging.status === "ACTIVE")
+    .flatMap(mapSellerAssetRows);
 }
 
 export async function updateSellerAsset(assetId, patchData) {
@@ -623,6 +737,9 @@ export async function updateSellerAsset(assetId, patchData) {
 
   if (!target?.fileName) {
     throw new Error("조정할 이미지가 없습니다.");
+  }
+  if (target.isExternal) {
+    throw new Error("외부 URL 이미지는 이 화면에서 직접 수정할 수 없습니다.");
   }
 
   const lodging = await get(`/api/lodgings/${target.lodgingId}`);
@@ -679,6 +796,9 @@ export async function deleteSellerAsset(assetId) {
 
   if (!target?.fileName) {
     throw new Error("삭제할 이미지가 없습니다.");
+  }
+  if (target.isExternal) {
+    throw new Error("외부 URL 이미지는 이 화면에서 직접 삭제할 수 없습니다.");
   }
 
   const lodging = await get(`/api/lodgings/${target.lodgingId}`);
@@ -758,7 +878,7 @@ export async function submitSellerApplication(form) {
 }
 
 export async function getSellerMetrics(prefetched = {}) {
-  const lodgings = prefetched.lodgings ?? await getSellerLodgings();
+  const lodgings = prefetched.lodgings ?? await getSellerDashboardLodgings();
   const reservations = prefetched.reservations ?? await getSellerReservations();
   const inquiries = prefetched.inquiries ?? await getSellerInquiryRooms();
 
@@ -774,7 +894,7 @@ export async function getAdminDashboardSnapshot() {
   const [users, sellers, adminInquiries] = await Promise.all([
     getAdminUsers().catch(() => []),
     getAdminSellers().catch(() => []),
-    getAdminInquiries().catch(() => []),
+    getAdminDashboardInquiries().catch(() => []),
   ]);
 
   return {
@@ -787,14 +907,28 @@ export async function getAdminDashboardSnapshot() {
 }
 
 export async function getSellerDashboardSnapshot() {
-  const lodgingsPromise = getSellerLodgings();
+  const lodgingsPromise = getSellerDashboardLodgings();
   const reservationsPromise = getSellerReservations();
   const inquiriesPromise = getSellerInquiryRooms().catch(() => []);
+  const salesSummaryPromise = getSellerSalesSummary().catch(() => ({
+    totalSalesAmount: 0,
+    totalBookingCount: 0,
+    canceledRatio: 0,
+    lodgingTypeRatios: [],
+    lodgingTypeSales: [],
+    monthlySales: [],
+    summaryCards: [
+      { label: "총판매액", value: "-" },
+      { label: "총예약수", value: "0건" },
+      { label: "취소비율", value: "0%" },
+    ],
+  }));
 
-  const [lodgings, reservations, inquiries] = await Promise.all([
+  const [lodgings, reservations, inquiries, salesSummary] = await Promise.all([
     lodgingsPromise,
     reservationsPromise,
     inquiriesPromise,
+    salesSummaryPromise,
   ]);
   const metrics = await getSellerMetrics({ lodgings, reservations, inquiries });
 
@@ -804,5 +938,6 @@ export async function getSellerDashboardSnapshot() {
     lodgings,
     reservations,
     inquiries,
+    salesSummary,
   };
 }

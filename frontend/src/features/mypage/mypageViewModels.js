@@ -96,16 +96,31 @@ export function getCouponVisualClass(item) {
 }
 
 export function getMileageSummary(rows, filter) {
+  const now = new Date();
+  const currentMonthPrefix = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const parseSignedAmount = (value) => {
+    const normalized = String(value ?? "")
+      .replace(/[^0-9+-]/g, "");
+    const numeric = Number(normalized);
+    return Number.isFinite(numeric) ? numeric : 0;
+  };
+
+  const isCurrentMonth = (item) => String(item.time ?? "").startsWith(currentMonthPrefix);
+
   const earnedThisMonth = rows
-    .filter((item) => item.type === "적립" && item.time.startsWith("2026.03"))
-    .reduce((sum, item) => sum + Number(item.amount.replace(/[+,]/g, "")), 0);
+    .filter((item) => item.type === "적립" && isCurrentMonth(item))
+    .reduce((sum, item) => sum + Math.abs(parseSignedAmount(item.amount)), 0);
   const usedThisMonth = rows
-    .filter((item) => item.type === "사용" && item.time.startsWith("2026.03"))
-    .reduce((sum, item) => sum + Number(item.amount.replace(/[-,]/g, "")), 0);
+    .filter((item) => (item.type === "사용" || item.type === "사용 복구") && isCurrentMonth(item))
+    .reduce((sum, item) => {
+      const amount = Math.abs(parseSignedAmount(item.amount));
+      return item.type === "사용 복구" ? sum - amount : sum + amount;
+    }, 0);
   const filteredRows = rows.filter((item) => {
     if (filter === "all") return true;
     if (filter === "earn") return item.type === "적립";
-    if (filter === "use") return item.type === "사용";
+    if (filter === "use") return item.type === "사용" || item.type === "사용 복구";
     return false;
   });
 
@@ -113,11 +128,13 @@ export function getMileageSummary(rows, filter) {
 }
 
 export function getPaymentSummary(rows) {
+  const isRefundLike = (status) => ["REFUNDED", "CANCELED"].includes(status);
+
   return {
     paidCount: rows.filter((item) => item.status === "PAID").length,
-    refundedCount: rows.filter((item) => item.status === "REFUNDED").length,
+    refundedCount: rows.filter((item) => isRefundLike(item.status)).length,
     recentPaidAmount: rows.find((item) => item.status === "PAID")?.amount ?? "-",
-    recentRefundedAmount: rows.find((item) => item.status === "REFUNDED")?.amount ?? "-",
+    recentRefundedAmount: rows.find((item) => isRefundLike(item.status))?.amount ?? "-",
   };
 }
 

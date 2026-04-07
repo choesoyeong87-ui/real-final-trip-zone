@@ -4,6 +4,14 @@ import MyPageLayout from "../../components/user/MyPageLayout";
 import { getPaymentSummary } from "../../features/mypage/mypageViewModels";
 import { getMyBookings, getMyPayments } from "../../services/mypageService";
 
+function getPaymentStatusLabel(status) {
+  if (status === "PAID") return "결제 완료";
+  if (status === "READY") return "결제 대기";
+  if (status === "CANCELED") return "결제 취소";
+  if (status === "REFUNDED") return "환불 완료";
+  return status ?? "상태 확인";
+}
+
 export default function MyPaymentsPage() {
   const [myBookingRows, setMyBookingRows] = useState([]);
   const [paymentHistoryRows, setPaymentHistoryRows] = useState([]);
@@ -73,7 +81,7 @@ export default function MyPaymentsPage() {
                 <div className="payment-row-copy">
                   <div className="payment-row-topline">
                     <span className={`table-code code-${item.status.toLowerCase()}`}>
-                      {item.status === "PAID" ? "결제 완료" : "환불"}
+                      {getPaymentStatusLabel(item.status)}
                     </span>
                     <span>{item.bookingNo}</span>
                   </div>

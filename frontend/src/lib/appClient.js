@@ -11,8 +11,21 @@ function resolveDefaultApiBaseUrl() {
   return "http://100.96.110.114:8080";
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? resolveDefaultApiBaseUrl();
+function resolveApiBaseUrl() {
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "http://localhost:8080";
+    }
+  }
+
+  return import.meta.env.VITE_API_BASE_URL ?? resolveDefaultApiBaseUrl();
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 const APP_DATA_SOURCE = "http";
+const ACCESS_TOKEN_REFRESH_BUFFER_MS = 10 * 1000;
+let refreshRequestPromise = null;
 
 export function getApiBaseUrl() {
   return API_BASE_URL;
@@ -20,6 +33,44 @@ export function getApiBaseUrl() {
 
 export function getAppDataSource() {
   return APP_DATA_SOURCE;
+}
+
+export function toUserFacingErrorMessage(error, fallback = "요청을 처리하지 못했습니다.") {
+  const rawMessage = String(error?.message ?? "").trim();
+  const normalized = rawMessage.toLowerCase();
+
+  if (!rawMessage) {
+    return fallback;
+  }
+
+  if (
+    normalized.includes("403") ||
+    normalized.includes("401") ||
+    normalized.includes("forbidden") ||
+    normalized.includes("unauthorized")
+  ) {
+    return "권한이 없거나 세션이 만료됐습니다. 다시 로그인해 주세요.";
+  }
+
+  if (
+    normalized.includes("500") ||
+    normalized.includes("502") ||
+    normalized.includes("503") ||
+    normalized.includes("504") ||
+    normalized.includes("failed to fetch") ||
+    normalized.includes("networkerror") ||
+    normalized.includes("network request failed") ||
+    normalized.includes("timeout") ||
+    normalized.includes("connection")
+  ) {
+    return "서버 연결이 일시적으로 원활하지 않습니다. 잠시 후 다시 시도해 주세요.";
+  }
+
+  if (normalized.startsWith("http ")) {
+    return fallback;
+  }
+
+  return fallback;
 }
 
 export function isMockDataSource() {
@@ -48,6 +99,56 @@ function getAuthHeaders(headers = {}) {
     : headers;
 }
 
+function decodeBase64Url(value) {
+  if (typeof window === "undefined" || typeof window.atob !== "function") {
+    return null;
+  }
+
+  try {
+    const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    return window.atob(padded);
+  } catch {
+    return null;
+  }
+}
+
+function getJwtExpiresAt(token) {
+  if (typeof token !== "string") {
+    return null;
+  }
+
+  const [, payload] = token.split(".");
+  if (!payload) {
+    return null;
+  }
+
+  const decoded = decodeBase64Url(payload);
+  if (!decoded) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(decoded);
+    const exp = Number(parsed.exp);
+    if (!Number.isFinite(exp) || exp <= 0) {
+      return null;
+    }
+    return exp * 1000;
+  } catch {
+    return null;
+  }
+}
+
+function shouldRefreshAccessToken(session) {
+  const expiresAt = getJwtExpiresAt(session?.accessToken);
+  if (!expiresAt) {
+    return false;
+  }
+
+  return expiresAt - Date.now() <= ACCESS_TOKEN_REFRESH_BUFFER_MS;
+}
+
 async function parseResponseError(response) {
   let errorMessage = `HTTP ${response.status}`;
 
@@ -62,6 +163,11 @@ async function parseResponseError(response) {
 }
 
 async function requestAccessTokenRefresh() {
+  if (refreshRequestPromise) {
+    return refreshRequestPromise;
+  }
+
+  refreshRequestPromise = (async () => {
   const session = readAuthSession();
   if (!session?.refreshToken) {
     clearAuthSession();
@@ -91,11 +197,31 @@ async function requestAccessTokenRefresh() {
   };
   writeAuthSession(nextSession);
   return nextSession;
+  })().finally(() => {
+    refreshRequestPromise = null;
+  });
+
+  return refreshRequestPromise;
 }
 
 async function request(path, options = {}, retry = true) {
   const isJsonBody = options.body && !(options.body instanceof FormData);
-  const hasAuthSession = Boolean(readAuthSession()?.accessToken);
+  const session = readAuthSession();
+  const hasAuthSession = Boolean(session?.accessToken);
+
+  if (
+    retry &&
+    hasAuthSession &&
+    path !== "/api/auth/refresh" &&
+    !path.startsWith("/api/auth/login") &&
+    shouldRefreshAccessToken(session)
+  ) {
+    const refreshedSession = await requestAccessTokenRefresh();
+    if (refreshedSession) {
+      return request(path, options, false);
+    }
+  }
+
   const response = await fetch(buildUrl(path), {
     ...options,
     headers: getAuthHeaders({

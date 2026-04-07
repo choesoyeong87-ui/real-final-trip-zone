@@ -1077,6 +1077,13 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px 18px;
+  align-items: start;
+}
+
+.profile-form-meta-cell {
+  display: grid;
+  gap: 12px;
+  align-self: start;
 }
 
 .profile-form-field {
@@ -1127,9 +1134,9 @@
 
 .profile-password-panel {
   display: grid;
-  gap: 14px;
-  padding: 18px;
-  border-radius: 18px;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 16px;
   border: 1px solid rgba(19, 53, 47, 0.08);
   background:
     radial-gradient(circle at top right, rgba(143, 214, 209, 0.14), transparent 22%),
@@ -1138,11 +1145,12 @@
 
 .profile-password-panel-inline {
   grid-column: 1 / -1;
+  width: 100%;
 }
 
 .profile-password-head {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .profile-password-head strong {
@@ -1154,13 +1162,13 @@
   margin: 0;
   color: var(--text-soft);
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.45;
 }
 
 .profile-password-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 .profile-password-actions {
@@ -1168,6 +1176,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  margin-top: 2px;
 }
 
 .profile-device-strip,

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import GoogleSignInButton from "../../components/auth/GoogleSignInButton";
+import { toUserFacingErrorMessage } from "../../lib/appClient";
 import { authProviders, defaultLoginForm, demoLoginAccounts } from "../../data/authData";
 import {
   getAuthProviderMark,
@@ -35,7 +36,7 @@ export default function LoginPage() {
       const session = await loginWithCredentials(form);
       commitSession(session);
     } catch (error) {
-      setErrorMessage(error.message || "로그인에 실패했습니다.");
+      setErrorMessage(toUserFacingErrorMessage(error, "로그인에 실패했습니다."));
     } finally {
       setIsSubmitting(false);
     }
@@ -57,7 +58,7 @@ export default function LoginPage() {
 
       throw new Error("지원하지 않는 소셜 로그인입니다.");
     } catch (error) {
-      setErrorMessage(error.message || "소셜 로그인에 실패했습니다.");
+      setErrorMessage(toUserFacingErrorMessage(error, "소셜 로그인에 실패했습니다."));
     }
   };
 
@@ -129,7 +130,7 @@ export default function LoginPage() {
                   <GoogleSignInButton
                     text="continue_with"
                     onSuccess={commitSession}
-                    onError={(error) => setErrorMessage(error.message || "구글 로그인에 실패했습니다.")}
+                    onError={(error) => setErrorMessage(toUserFacingErrorMessage(error, "구글 로그인에 실패했습니다."))}
                   />
                 </div>
               ) : (

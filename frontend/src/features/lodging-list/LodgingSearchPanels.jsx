@@ -48,7 +48,7 @@ function CalendarMonth({ baseDate, startDate, endDate, onPick, controls = null }
   );
 }
 
-export function SuggestionsPanel({ open, anchorRef, panelRef, items, onPick }) {
+export function SuggestionsPanel({ open, anchorRef, panelRef, items, recentSearches = [], onPickRecent, onPick }) {
   const [position, setPosition] = useState(null);
 
   useEffect(() => {
@@ -81,11 +81,8 @@ export function SuggestionsPanel({ open, anchorRef, panelRef, items, onPick }) {
       className="search-floating-panel search-suggestion-panel"
       style={{ left: `${position.left}px`, top: `${position.top}px`, width: `${position.width}px`, maxHeight: `${position.maxHeight}px` }}
     >
-      <div className="search-panel-head">
-        <strong>연관 검색</strong>
-        <span>도시, 역, 숙소명을 더 빠르게 고를 수 있습니다.</span>
-      </div>
       <div className="search-suggestion-group">
+        <span className="search-chip-label">연관 검색</span>
         <div className="search-suggestion-list search-suggestion-list-stacked">
           {items.length ? (
             items.map((item) => (
@@ -98,13 +95,26 @@ export function SuggestionsPanel({ open, anchorRef, panelRef, items, onPick }) {
               </button>
             ))
           ) : (
-            <div className="search-suggestion-empty">
-              <strong>검색어를 입력하세요</strong>
-              <span>지역명, 숙소명, 랜드마크를 입력하면 연관 검색이 표시됩니다.</span>
-            </div>
+            <div className="search-suggestion-empty">검색 결과가 없습니다.</div>
           )}
         </div>
       </div>
+      {recentSearches.length ? (
+        <div className="search-suggestion-group">
+          <span className="search-chip-label">최근 검색</span>
+          <div className="search-suggestion-list search-suggestion-list-stacked search-suggestion-list-recent">
+            {recentSearches.map((item) => (
+              <button key={item} type="button" className="search-suggestion-item recent" onClick={() => onPickRecent?.(item)}>
+                <span className="search-suggestion-icon">↺</span>
+                <div className="search-suggestion-copy">
+                  <strong>{item}</strong>
+                  <span>최근 확인한 검색어</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>,
     document.body,
   );
@@ -153,10 +163,6 @@ export function DateRangePopover({ open, anchorRef, panelRef, visibleMonth, setV
       className="search-floating-panel search-calendar-panel"
       style={{ left: `${position.left}px`, top: `${position.top}px`, width: `${position.width}px`, maxHeight: `${position.maxHeight}px` }}
     >
-      <div className="search-panel-head">
-        <strong>체크인 · 체크아웃</strong>
-        <span>{formatDateSummary(checkIn, checkOut)}</span>
-      </div>
       <div className="calendar-month-grid" style={{ gridTemplateColumns: position.isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
         <CalendarMonth
           baseDate={visibleMonth}
@@ -221,10 +227,6 @@ export function GuestPopover({ open, anchorRef, panelRef, guests, onChange, onCl
 
   return createPortal(
     <div ref={panelRef} className="search-floating-panel guest-panel" style={{ left: `${position.left}px`, top: `${position.top}px`, width: `${position.width}px` }}>
-      <div className="search-panel-head">
-        <strong>투숙 인원</strong>
-        <span>객실 1개 기준으로 빠르게 조정할 수 있습니다.</span>
-      </div>
       <div className="guest-panel-row">
         <div>
           <strong>성인</strong>

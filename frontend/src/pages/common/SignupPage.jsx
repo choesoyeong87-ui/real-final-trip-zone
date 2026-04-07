@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toUserFacingErrorMessage } from "../../lib/appClient";
 import { defaultSignupForm } from "../../data/authData";
 import { signupWithCredentials } from "../../features/auth/authViewModels";
 
@@ -28,7 +29,7 @@ export default function SignupPage() {
         },
       });
     } catch (error) {
-      setErrorMessage(error.message || "회원가입에 실패했습니다.");
+      setErrorMessage(toUserFacingErrorMessage(error, "회원가입에 실패했습니다."));
     } finally {
       setIsSubmitting(false);
     }

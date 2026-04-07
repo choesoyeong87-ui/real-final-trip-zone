@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
 import { myPageSections } from "../../data/mypageData";
 import { formatMembershipLabel } from "../../features/mypage/mypageViewModels";
-import { getMyHome } from "../../services/mypageService";
+import { getCachedMyHomeSnapshot, getMyHome } from "../../services/mypageService";
 
 const EMPTY_PROFILE_SUMMARY = {
   name: "TripZone 회원",
@@ -14,15 +14,18 @@ const EMPTY_PROFILE_SUMMARY = {
 };
 
 export default function MyPageHomePage() {
-  const [homeData, setHomeData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedHomeData = getCachedMyHomeSnapshot();
+  const [homeData, setHomeData] = useState(cachedHomeData);
+  const [isLoading, setIsLoading] = useState(!cachedHomeData);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadMyHome() {
       try {
-        setIsLoading(true);
+        if (!cachedHomeData) {
+          setIsLoading(true);
+        }
         const response = await getMyHome();
         if (cancelled) return;
         setHomeData(response);

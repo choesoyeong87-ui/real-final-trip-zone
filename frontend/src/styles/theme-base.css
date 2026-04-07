@@ -97,7 +97,7 @@ button {
 
 .main-shell {
   flex: 1;
-  padding: 30px 0 56px;
+  padding: 18px 0 56px;
 }
 
 .header {
@@ -107,19 +107,12 @@ button {
   -webkit-backdrop-filter: blur(20px) saturate(1.8);
   background:
     linear-gradient(180deg, rgba(251, 250, 245, 0.96), rgba(247, 245, 239, 0.92));
-  border-bottom: 1px solid rgba(22, 30, 24, 0.06);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.7),
-    0 12px 26px rgba(30, 41, 36, 0.04);
+  border-bottom: 0;
+  box-shadow: none;
 }
 
 .header::before {
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(184, 134, 11, 0.18), transparent);
-  pointer-events: none;
+  content: none;
 }
 
 .header-inner,
@@ -433,6 +426,92 @@ button {
 .header.is-home .header-inner {
   padding-top: 16px;
   padding-bottom: 15px;
+}
+
+.home-page-active .main-shell {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.home-page-active .footer {
+  margin-top: 0;
+}
+
+.header.is-home {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: transparent;
+  border-bottom: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.header.is-home::before {
+  display: none;
+}
+
+.header.is-home .brand {
+  position: relative;
+  isolation: isolate;
+}
+
+.header.is-home .brand::before {
+  content: "";
+  position: absolute;
+  inset: -14px -18px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 18% 50%, rgba(255, 214, 155, 0.2), transparent 30%),
+    radial-gradient(circle at 82% 38%, rgba(92, 208, 201, 0.18), transparent 34%);
+  filter: blur(16px);
+  opacity: 0.72;
+  transform: scale(0.96);
+  transition:
+    opacity 0.26s ease,
+    transform 0.26s ease,
+    filter 0.26s ease;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.header.is-home .brand:hover::before {
+  opacity: 0.92;
+  transform: scale(1.02);
+  filter: blur(18px);
+}
+
+.header.is-home .brand-mark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.22), transparent 42%),
+    radial-gradient(circle at 22% 18%, rgba(255, 247, 223, 0.55), transparent 24%);
+  opacity: 0.88;
+  pointer-events: none;
+}
+
+.header.is-home .brand-mark::after {
+  content: "";
+  position: absolute;
+  inset: -42% auto auto -18%;
+  width: 68%;
+  height: 170%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0));
+  transform: rotate(23deg) translateX(-120%);
+  opacity: 0;
+  transition:
+    transform 0.7s ease,
+    opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.header.is-home .brand:hover .brand-mark::after {
+  transform: rotate(23deg) translateX(150%);
+  opacity: 1;
 }
 
 @media (max-width: 1180px) {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { readAuthSession } from "../../features/auth/authSession";
-import { getMyHome } from "../../services/mypageService";
+import { getCachedMyHomeSnapshot, getMyHome } from "../../services/mypageService";
 import { formatMembershipLabel } from "../../features/mypage/mypageViewModels";
 
 const ITEMS = [
@@ -17,7 +17,7 @@ const ITEMS = [
 
 export default function MyPageSidebar() {
   const session = readAuthSession();
-  const [profileSummary, setProfileSummary] = useState(null);
+  const [profileSummary, setProfileSummary] = useState(() => getCachedMyHomeSnapshot()?.profileSummary ?? null);
 
   useEffect(() => {
     if (session?.role !== "ROLE_USER") {

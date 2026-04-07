@@ -2,23 +2,192 @@ import { del, get, patch, post } from "../lib/appClient";
 import { readAuthSession } from "../features/auth/authSession";
 
 let myCouponSnapshot = [];
+let myHomeMemoryCache = null;
+let myHomeRequestPromise = null;
+const MY_HOME_CACHE_KEY = "tripzone-my-home";
+const resourceMemoryCache = new Map();
+const resourceRequestCache = new Map();
+const RESOURCE_KEYS = {
+  profile: "tripzone-my-profile",
+  bookings: "tripzone-my-bookings",
+  payments: "tripzone-my-payments",
+  coupons: "tripzone-my-coupons",
+  mileage: "tripzone-my-mileage",
+  wishlist: "tripzone-my-wishlist",
+};
 
 // Current backend note:
 // Booking/payment can adapt to current backend DTOs.
 // Inquiry must keep design-doc target shape first:
 // InquiryRoom + InquiryMessage, OPEN/ANSWERED/CLOSED/BLOCKED.
 
-export async function getMyHome() {
-  return get("/api/mypage/home");
+function readMyHomeCache() {
+  if (myHomeMemoryCache) {
+    return myHomeMemoryCache;
+  }
+
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(MY_HOME_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    myHomeMemoryCache = parsed;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function getScopedCacheKey(baseKey) {
+  const session = readAuthSession();
+  return `${baseKey}:${session?.userNo ?? "guest"}`;
+}
+
+function readCachedResource(baseKey) {
+  const scopedKey = getScopedCacheKey(baseKey);
+  if (resourceMemoryCache.has(scopedKey)) {
+    return resourceMemoryCache.get(scopedKey);
+  }
+
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(scopedKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    resourceMemoryCache.set(scopedKey, parsed);
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedResource(baseKey, value) {
+  const scopedKey = getScopedCacheKey(baseKey);
+  resourceMemoryCache.set(scopedKey, value);
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(scopedKey, JSON.stringify(value));
+  } catch {
+    // 세션 저장 실패는 메모리 캐시로 대체한다.
+  }
+}
+
+function invalidateCachedResource(baseKey) {
+  const scopedKey = getScopedCacheKey(baseKey);
+  resourceMemoryCache.delete(scopedKey);
+  resourceRequestCache.delete(scopedKey);
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(scopedKey);
+  } catch {
+    // 세션 저장소 접근 실패는 무시한다.
+  }
+}
+
+async function fetchCachedResource(baseKey, fetcher, options = {}) {
+  const cached = readCachedResource(baseKey);
+  if (cached !== null && !options.force) {
+    return cached;
+  }
+
+  const scopedKey = getScopedCacheKey(baseKey);
+  if (!resourceRequestCache.has(scopedKey)) {
+    resourceRequestCache.set(
+      scopedKey,
+      fetcher()
+        .then((response) => {
+          writeCachedResource(baseKey, response);
+          return response;
+        })
+        .finally(() => {
+          resourceRequestCache.delete(scopedKey);
+        }),
+    );
+  }
+
+  return resourceRequestCache.get(scopedKey);
+}
+
+function writeMyHomeCache(response) {
+  myHomeMemoryCache = response;
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(MY_HOME_CACHE_KEY, JSON.stringify(response));
+  } catch {
+    // 세션 저장 실패 시 메모리 캐시만 사용한다.
+  }
+}
+
+export function invalidateMyHomeCache() {
+  myHomeMemoryCache = null;
+  myHomeRequestPromise = null;
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(MY_HOME_CACHE_KEY);
+  } catch {
+    // 세션 저장소 접근 실패는 무시한다.
+  }
+}
+
+export function invalidateMyPageCaches() {
+  invalidateMyHomeCache();
+  Object.values(RESOURCE_KEYS).forEach(invalidateCachedResource);
+  myCouponSnapshot = [];
+}
+
+export function getCachedMyHomeSnapshot() {
+  return readMyHomeCache();
+}
+
+export async function getMyHome(options = {}) {
+  const cached = readMyHomeCache();
+  if (cached && !options.force) {
+    return cached;
+  }
+
+  if (!myHomeRequestPromise) {
+    myHomeRequestPromise = get("/api/mypage/home")
+      .then((response) => {
+        writeMyHomeCache(response);
+        return response;
+      })
+      .finally(() => {
+        myHomeRequestPromise = null;
+      });
+  }
+
+  return myHomeRequestPromise;
 }
 
 export async function getMyProfileSummary() {
-  const response = await get("/api/mypage/profile");
+  const response = await fetchCachedResource(RESOURCE_KEYS.profile, () => get("/api/mypage/profile"));
   return response.summary;
 }
 
 export async function getMyProfileDetails() {
-  const response = await get("/api/mypage/profile");
+  const response = await fetchCachedResource(RESOURCE_KEYS.profile, () => get("/api/mypage/profile"));
   return response.details ?? [];
 }
 
@@ -38,11 +207,12 @@ export async function withdrawMyAccount() {
   }
 
   await patch(`/api/users/${session.userNo}/delete`);
+  invalidateMyPageCaches();
   return { ok: true };
 }
 
 export async function getMyBookings() {
-  const response = await get("/api/mypage/bookings");
+  const response = await fetchCachedResource(RESOURCE_KEYS.bookings, () => get("/api/mypage/bookings"));
   return response.items ?? [];
 }
 
@@ -55,7 +225,7 @@ export async function getMyBookingById(bookingId) {
 }
 
 export async function getMyPayments() {
-  const response = await get("/api/mypage/payments");
+  const response = await fetchCachedResource(RESOURCE_KEYS.payments, () => get("/api/mypage/payments"));
   return response.items ?? [];
 }
 
@@ -170,7 +340,7 @@ export async function fetchCouponCatalog() {
 }
 
 export async function fetchMyCoupons() {
-  const response = await get("/api/mypage/coupons");
+  const response = await fetchCachedResource(RESOURCE_KEYS.coupons, () => get("/api/mypage/coupons"));
   const rows = (response.items ?? []).map(mapMyCouponItem);
   myCouponSnapshot = rows;
   return rows;
@@ -178,6 +348,8 @@ export async function fetchMyCoupons() {
 
 export async function deleteMyCoupon(userCouponId) {
   await del(`/api/usercoupon/${userCouponId}`);
+  invalidateMyHomeCache();
+  invalidateCachedResource(RESOURCE_KEYS.coupons);
   return fetchMyCoupons();
 }
 
@@ -191,15 +363,17 @@ export async function claimMyCoupon(coupon) {
     issuedAt: new Date().toISOString(),
   });
 
+  invalidateMyHomeCache();
+  invalidateCachedResource(RESOURCE_KEYS.coupons);
   return { ok: true, rows: await fetchMyCoupons() };
 }
 
 export async function getMyMileage() {
-  return get("/api/mypage/mileage");
+  return fetchCachedResource(RESOURCE_KEYS.mileage, () => get("/api/mypage/mileage"));
 }
 
 export async function getMyWishlist() {
-  const response = await get("/api/mypage/wishlist");
+  const response = await fetchCachedResource(RESOURCE_KEYS.wishlist, () => get("/api/mypage/wishlist"));
   return response.items ?? [];
 }
 
@@ -208,6 +382,8 @@ export async function toggleMyWishlist(lodgingId) {
     lodgingNo: Number(lodgingId),
   });
 
+  invalidateMyHomeCache();
+  invalidateCachedResource(RESOURCE_KEYS.wishlist);
   const items = await getMyWishlist();
   return {
     items,

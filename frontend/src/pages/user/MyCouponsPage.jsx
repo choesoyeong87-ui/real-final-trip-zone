@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import MyPageLayout from "../../components/user/MyPageLayout";
+import { toUserFacingErrorMessage } from "../../lib/appClient";
 import {
   getCouponAmount,
   getCouponSummary,
@@ -54,7 +55,7 @@ export default function MyCouponsPage() {
       setCoupons(rows);
       setMessage("쿠폰을 정리했습니다.");
     } catch (error) {
-      setMessage(error?.message ?? "쿠폰을 정리하지 못했습니다.");
+      setMessage(toUserFacingErrorMessage(error, "쿠폰을 정리하지 못했습니다."));
     } finally {
       setDeletingCouponId(null);
     }

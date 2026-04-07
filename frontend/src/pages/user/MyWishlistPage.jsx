@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
-import { getLodgings } from "../../services/lodgingService";
+import { getLodgings, LODGING_FALLBACK_IMAGE } from "../../services/lodgingService";
 import { getMyWishlist } from "../../services/mypageService";
 
 export default function MyWishlistPage() {
@@ -13,6 +13,7 @@ export default function MyWishlistPage() {
     const lodging = lodgingMap[item.lodgingId];
     return lodging?.status === "ACTIVE" || lodging?.highlights?.some((highlight) => highlight.includes("즉시"));
   }).length;
+  const formatMeta = (...parts) => parts.filter((part) => typeof part === "string" && part.trim()).join(" · ");
 
   useEffect(() => {
     let cancelled = false;
@@ -74,16 +75,23 @@ export default function MyWishlistPage() {
           {wishlistRows.map((item) => (
             <article key={item.name} className="wishlist-row">
               <Link className="wishlist-media" to={`/lodgings/${item.lodgingId}`}>
-                <img src={lodgingMap[item.lodgingId]?.image} alt={item.name} />
+                <img
+                  src={lodgingMap[item.lodgingId]?.image}
+                  alt={item.name}
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = LODGING_FALLBACK_IMAGE;
+                  }}
+                />
               </Link>
               <div className="wishlist-main">
                 <div className="wishlist-copy">
                   <div className="payment-row-topline">
                     <span className="inline-chip">{item.status}</span>
-                    <span className="wishlist-region">{lodgingMap[item.lodgingId]?.region} · {lodgingMap[item.lodgingId]?.district}</span>
+                    <span className="wishlist-region">{formatMeta(lodgingMap[item.lodgingId]?.region, lodgingMap[item.lodgingId]?.district)}</span>
                   </div>
                   <strong>{item.name}</strong>
-                  <p>{lodgingMap[item.lodgingId]?.type} · {lodgingMap[item.lodgingId]?.room}</p>
+                  <p>{formatMeta(lodgingMap[item.lodgingId]?.type, lodgingMap[item.lodgingId]?.room)}</p>
                 </div>
               </div>
               <div className="wishlist-side">

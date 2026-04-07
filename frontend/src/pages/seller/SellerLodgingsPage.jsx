@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DataTable from "../../components/common/DataTable";
+import { toUserFacingErrorMessage } from "../../lib/appClient";
 import {
   createSellerLodging,
+  deleteSellerLodging,
   getSellerLodgings,
   updateSellerLodging,
   updateSellerLodgingStatus,
@@ -92,9 +94,7 @@ export default function SellerLodgingsPage() {
         setMode("create");
         setForm(INITIAL_FORM);
         setNotice(
-          error.message?.includes("403") || error.message?.includes("Forbidden")
-            ? "판매자 세션이 만료됐거나 권한이 없습니다. 다시 로그인해 주세요."
-            : error.message || "숙소 목록을 불러오지 못했습니다.",
+          toUserFacingErrorMessage(error, "숙소 목록을 불러오지 못했습니다."),
         );
       } finally {
         if (!cancelled) {
@@ -129,7 +129,7 @@ export default function SellerLodgingsPage() {
       setForm(toLodgingForm(updated));
       setNotice("");
     } catch (error) {
-      setNotice(error.message);
+      setNotice(toUserFacingErrorMessage(error, "숙소 상태를 변경하지 못했습니다."));
     }
   };
 
@@ -141,6 +141,22 @@ export default function SellerLodgingsPage() {
     setMode("create");
     setForm(INITIAL_FORM);
     setNotice("");
+  };
+
+  const handleDelete = async () => {
+    if (!selected || mode === "create") return;
+    try {
+      await deleteSellerLodging(selected.id);
+      const refreshedRows = await getSellerLodgings();
+      const refreshed = refreshedRows[0] ?? null;
+      setRows(refreshedRows);
+      setSelectedId(refreshed?.id ?? null);
+      setMode(refreshed ? "edit" : "create");
+      setForm(refreshed ? toLodgingForm(refreshed) : INITIAL_FORM);
+      setNotice("숙소를 삭제했습니다.");
+    } catch (error) {
+      setNotice(toUserFacingErrorMessage(error, "숙소 삭제에 실패했습니다."));
+    }
   };
 
   const validateForm = () => {
@@ -189,24 +205,12 @@ export default function SellerLodgingsPage() {
 
   return (
     <DashboardLayout role="seller">
-      <div className="dash-page-header">
-        <div className="dash-page-header-copy">
-          <p className="eyebrow">숙소 운영</p>
-          <h1>숙소 관리</h1>
-          <p>
-            운영 {rows.filter((r) => r.status === "ACTIVE").length}곳 · 비노출{" "}
-            {rows.filter((r) => r.status === "INACTIVE").length}곳 · 총 객실{" "}
-            {rows.reduce((sum, r) => sum + (r.roomCount || 0), 0)}개
-          </p>
-          {notice ? <p>{notice}</p> : null}
-        </div>
-      </div>
-
-      <div className="dash-table-split dash-table-split-lodgings">
-        <section className="dash-content-section seller-lodgings-table-section" style={{ marginBottom: 0 }}>
+      {notice ? <div className="my-empty-inline">{notice}</div> : null}
+      <div className="saas-bento-split seller-crud-split">
+        <section className="saas-bento-panel seller-crud-table-section seller-lodgings-table-section">
           {isLoading ? <div className="my-empty-inline">숙소 목록을 불러오는 중입니다.</div> : null}
           {!isLoading && !rows.length ? (
-            <div className="my-empty-inline">아직 등록된 숙소가 없습니다. 우측 카드에서 첫 숙소를 추가하세요.</div>
+            <div className="my-empty-inline">아직 등록된 숙소가 없습니다. 우측 폼에서 첫 숙소를 추가하세요.</div>
           ) : null}
           <DataTable
             columns={columns}
@@ -220,52 +224,52 @@ export default function SellerLodgingsPage() {
           />
         </section>
 
-        <div className="dash-action-sheet seller-lodgings-action-sheet">
-          <h3>{mode === "create" ? "신규 숙소 등록" : selected?.name ?? "숙소를 선택해 주세요"}</h3>
-          <p>
-            {mode === "create"
-              ? "본인 명의 숙소를 추가하면 즉시 숙소 목록에 반영됩니다."
-              : selected
-                ? `${selected.region} · ${selected.type}`
-                : "목록에서 숙소를 선택하면 운영 상태 변경과 수정이 가능합니다."}
-          </p>
+        <aside className="saas-bento-panel">
+          <div className="saas-bento-head">
+            <strong>{mode === "create" ? "신규 숙소 등록" : selected?.name ?? "숙소를 선택해 주세요"}</strong>
+            {selected && mode !== "create" ? <p>{selected.region} · {selected.type}</p> : null}
+          </div>
 
-          <div className="dash-action-grid">
+          <div className="saas-form-actions saas-form-actions-start">
             <button
               type="button"
-              className={getActionButtonClass({
-                tone: "primary",
-                isActive: mode !== "create" && selected?.status === "ACTIVE",
-              })}
-              aria-pressed={mode !== "create" && selected?.status === "ACTIVE"}
-              onClick={() => updateStatus("ACTIVE")}
-              disabled={!selected || mode === "create"}
+              className="saas-btn-primary"
+              onClick={openCreate}
             >
-              운영
-            </button>
-            <button
-              type="button"
-              className={getActionButtonClass({
-                tone: "danger",
-                isActive: mode !== "create" && selected?.status === "INACTIVE",
-              })}
-              aria-pressed={mode !== "create" && selected?.status === "INACTIVE"}
-              onClick={() => updateStatus("INACTIVE")}
-              disabled={!selected || mode === "create"}
-            >
-              비노출
-            </button>
-            <button type="button" className={getActionButtonClass({ isActive: mode === "create" })} aria-pressed={mode === "create"} onClick={openCreate}>
               숙소 등록
+            </button>
+            <button
+              type="button"
+              className="saas-btn-primary"
+              onClick={() => updateStatus("ACTIVE")}
+              disabled={!selected || mode === "create" || selected?.status === "ACTIVE"}
+            >
+              운영 시작
+            </button>
+            <button
+              type="button"
+              className="saas-btn-danger"
+              onClick={() => updateStatus("INACTIVE")}
+              disabled={!selected || mode === "create" || selected?.status === "INACTIVE"}
+            >
+              비노출 전환
+            </button>
+            <button
+              type="button"
+              className="saas-btn-ghost"
+              onClick={handleDelete}
+              disabled={!selected || mode === "create"}
+            >
+              숙소 삭제
             </button>
           </div>
 
-          <form className="dash-create-form-grid" onSubmit={handleSubmit}>
-            <label className="dash-field">
+          <form className="saas-create-form-grid" onSubmit={handleSubmit}>
+            <label className="saas-field">
               <span>숙소명</span>
               <input value={form.name} onChange={(event) => handleChange("name", event.target.value)} placeholder="예: 한강 브리즈 호텔" />
             </label>
-            <label className="dash-field">
+            <label className="saas-field">
               <span>숙소 유형</span>
               <select value={form.type} onChange={(event) => handleChange("type", event.target.value)}>
                 <option value="HOTEL">HOTEL</option>
@@ -275,42 +279,44 @@ export default function SellerLodgingsPage() {
                 <option value="RESORT">RESORT</option>
               </select>
             </label>
-            <label className="dash-field">
+            <label className="saas-field">
               <span>지역</span>
               <input value={form.region} onChange={(event) => handleChange("region", event.target.value)} placeholder="서울" />
             </label>
-            <label className="dash-field">
+            <label className="saas-field">
               <span>우편번호</span>
               <input value={form.zipCode} onChange={(event) => handleChange("zipCode", event.target.value)} placeholder="04524" />
             </label>
-            <label className="dash-field dash-field-wide">
+            <label className="saas-field">
               <span>기본 주소</span>
               <input value={form.address} onChange={(event) => handleChange("address", event.target.value)} placeholder="서울 중구 세종대로 1" />
             </label>
-            <label className="dash-field dash-field-wide">
+            <label className="saas-field">
               <span>상세 주소</span>
               <input value={form.detailAddress} onChange={(event) => handleChange("detailAddress", event.target.value)} placeholder="오션타워 8층" />
             </label>
-            <label className="dash-field">
-              <span>체크인</span>
-              <input type="time" value={form.checkInTime} onChange={(event) => handleChange("checkInTime", event.target.value)} />
-            </label>
-            <label className="dash-field">
-              <span>체크아웃</span>
-              <input type="time" value={form.checkOutTime} onChange={(event) => handleChange("checkOutTime", event.target.value)} />
-            </label>
-            <label className="dash-field dash-field-wide">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <label className="saas-field">
+                <span>체크인</span>
+                <input type="time" value={form.checkInTime} onChange={(event) => handleChange("checkInTime", event.target.value)} />
+              </label>
+              <label className="saas-field">
+                <span>체크아웃</span>
+                <input type="time" value={form.checkOutTime} onChange={(event) => handleChange("checkOutTime", event.target.value)} />
+              </label>
+            </div>
+            <label className="saas-field">
               <span>숙소 설명</span>
               <textarea rows={4} value={form.description} onChange={(event) => handleChange("description", event.target.value)} placeholder="메인에 노출될 숙소 소개를 입력해 주세요." />
             </label>
             {notice ? <p className="dash-form-notice">{notice}</p> : null}
-            <div className="dash-create-form-actions">
-              <button type="submit" className="dash-action-btn is-primary" disabled={isSubmitting}>
-                {isSubmitting ? "저장 중..." : mode === "create" ? "숙소 등록 저장" : "숙소 수정 저장"}
+            <div className="saas-form-actions">
+              <button type="submit" className="saas-btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? "저장 중..." : mode === "create" ? "숙소 등록 완료" : "숙소 수정 완료"}
               </button>
             </div>
           </form>
-        </div>
+        </aside>
       </div>
     </DashboardLayout>
   );
