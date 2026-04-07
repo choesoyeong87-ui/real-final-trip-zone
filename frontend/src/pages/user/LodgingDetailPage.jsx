@@ -19,6 +19,7 @@ import {
   updateLodgingReview,
   uploadLodgingReviewImages,
 } from "../../services/lodgingService";
+import { getApiBaseUrl } from "../../lib/appClient";
 import { getMyBookings, getMyWishlist, toggleMyWishlist } from "../../services/mypageService";
 import {
   findMyInquiryRoomByLodgingId,
@@ -100,6 +101,7 @@ export default function LodgingDetailPage() {
   const [chatDraft, setChatDraft] = useState("");
   const [reviewDraft, setReviewDraft] = useState({ reviewId: null, bookingNo: null, score: 5, body: "", images: [] });
   const [reviews, setReviews] = useState([]);
+  const [reviewImagePreviewMap, setReviewImagePreviewMap] = useState({});
   const [isReviewLoading, setIsReviewLoading] = useState(true);
   const [isReviewUploading, setIsReviewUploading] = useState(false);
   const [reviewNotice, setReviewNotice] = useState("");
@@ -116,11 +118,71 @@ export default function LodgingDetailPage() {
     const roles = authSession?.roleNames ?? (authSession?.role ? [authSession.role] : []);
     return roles.includes("ROLE_USER");
   }, [authSession]);
+  const myExistingReview = useMemo(
+    () => reviews.find((item) => authSession?.userNo && Number(item.userNo) === Number(authSession.userNo)) ?? null,
+    [authSession?.userNo, reviews],
+  );
   const roomBaseMeta = getRoomMeta(selectedRoom?.name ?? "");
   const canWriteReview = useMemo(
     () => isCustomerSession && canWriteLodgingReview(authSession, myBookingRows, lodging?.id ?? 0),
     [authSession, isCustomerSession, lodging?.id, myBookingRows],
   );
+  const completedReviewBookings = useMemo(
+    () => myBookingRows.filter((booking) => booking.lodgingId === lodging?.id && booking.status === "COMPLETED"),
+    [lodging?.id, myBookingRows],
+  );
+  const myVisibleReviewBookingNos = useMemo(
+    () =>
+      new Set(
+        reviews
+          .filter((item) => authSession?.userNo && Number(item.userNo) === Number(authSession.userNo))
+          .map((item) => Number(item.bookingNo)),
+      ),
+    [authSession?.userNo, reviews],
+  );
+
+  const revokeReviewPreviewUrls = (images) => {
+    images.forEach((image) => {
+      if (!image?.isLocalPreview || !image.previewUrl || typeof window === "undefined") return;
+      window.URL.revokeObjectURL(image.previewUrl);
+    });
+  };
+
+  const revokeResolvedReviewImageUrls = (previewMap) => {
+    Object.values(previewMap).forEach((previewUrl) => {
+      if (typeof previewUrl === "string" && previewUrl.startsWith("blob:") && typeof window !== "undefined") {
+        window.URL.revokeObjectURL(previewUrl);
+      }
+    });
+  };
+
+  const buildReviewDraftFromReview = (review) => ({
+    reviewId: review.id,
+    bookingNo: review.bookingNo,
+    score: Number(review.score),
+    body: review.body,
+    images: (review.imageFileNames ?? []).map((fileName, index) => ({
+      fileName,
+      previewUrl: "",
+    })),
+  });
+
+  const isDuplicateReviewErrorMessage = (message) =>
+    message.includes("이미 해당 숙소에 대한 리뷰를 작성") ||
+    message.includes("이미 해당 예약에 대한 리뷰가 존재") ||
+    (message.includes("이미") && message.includes("리뷰"));
+
+  const resolveProtectedReviewImageUrl = async (fileName, accessToken) => {
+    if (!fileName || !accessToken || typeof window === "undefined") return null;
+    const response = await fetch(`${getApiBaseUrl()}/api/view/${encodeURIComponent(fileName)}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return window.URL.createObjectURL(blob);
+  };
 
   const loadLodgingWithTimeout = async (requestPromise, timeoutMessage) => {
     let timerId;
@@ -248,6 +310,58 @@ export default function LodgingDetailPage() {
       cancelled = true;
     };
   }, [authSession?.accessToken, isCustomerSession]);
+
+  useEffect(() => {
+    if (!authSession?.accessToken) return undefined;
+
+    const fileNames = new Set();
+    reviews.forEach((review) => {
+      (review.imageFileNames ?? []).forEach((fileName) => fileNames.add(fileName));
+    });
+    reviewDraft.images.forEach((image) => {
+      if (!image.isLocalPreview && image.fileName) {
+        fileNames.add(image.fileName);
+      }
+    });
+
+    const unresolved = Array.from(fileNames).filter((fileName) => !reviewImagePreviewMap[fileName]);
+    if (!unresolved.length) return undefined;
+
+    let cancelled = false;
+
+    Promise.all(
+      unresolved.map(async (fileName) => ({
+        fileName,
+        previewUrl: await resolveProtectedReviewImageUrl(fileName, authSession.accessToken),
+      })),
+    ).then((rows) => {
+      if (cancelled) return;
+      setReviewImagePreviewMap((current) => {
+        const next = { ...current };
+        rows.forEach(({ fileName, previewUrl }) => {
+          if (previewUrl) {
+            next[fileName] = previewUrl;
+          }
+        });
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authSession?.accessToken, reviewDraft.images, reviewImagePreviewMap, reviews]);
+
+  useEffect(() => () => revokeResolvedReviewImageUrls(reviewImagePreviewMap), []);
+
+  useEffect(() => {
+    if (!myExistingReview) return;
+    if (reviewDraft.reviewId === myExistingReview.id) return;
+    if (reviewDraft.reviewId || reviewDraft.body.trim() || reviewDraft.images.length) return;
+
+    setReviewDraft(buildReviewDraftFromReview(myExistingReview));
+    setReviewNotice("작성한 후기를 불러왔습니다. 수정 또는 삭제할 수 있습니다.");
+  }, [myExistingReview, reviewDraft.reviewId, reviewDraft.body, reviewDraft.images.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -397,12 +511,10 @@ export default function LodgingDetailPage() {
     const body = reviewDraft.body.trim();
     if (!body) return;
 
-    const completedBooking = reviewDraft.bookingNo
-      ? { bookingNo: reviewDraft.bookingNo }
-      : myBookingRows.find(
-          (booking) => booking.lodgingId === lodging.id && booking.status === "COMPLETED",
-        );
-    if (!completedBooking) {
+    const candidateBookings = reviewDraft.bookingNo
+      ? completedReviewBookings.filter((booking) => Number(booking.bookingNo) === Number(reviewDraft.bookingNo))
+      : completedReviewBookings.filter((booking) => !myVisibleReviewBookingNos.has(Number(booking.bookingNo)));
+    if (!candidateBookings.length) {
       setReviewNotice("숙박 완료 내역이 있어야 리뷰를 등록할 수 있습니다.");
       return;
     }
@@ -412,29 +524,68 @@ export default function LodgingDetailPage() {
     }
 
     try {
-      const payload = {
-        bookingNo: completedBooking.bookingNo,
-        lodgingId: lodging.id,
-        score: reviewDraft.score,
-        body,
-        imageFileNames: reviewDraft.images.map((image) => image.fileName),
-      };
-
       if (reviewDraft.reviewId) {
+        const payload = {
+          bookingNo: candidateBookings[0].bookingNo,
+          lodgingId: lodging.id,
+          score: reviewDraft.score,
+          body,
+          imageFileNames: reviewDraft.images.map((image) => image.fileName),
+        };
         const nextReview = await updateLodgingReview(reviewDraft.reviewId, payload);
         setReviews((current) => current.map((item) => (item.id === nextReview.id ? nextReview : item)));
         setReviewNotice("리뷰를 수정했습니다.");
       } else {
-        const nextReview = await createLodgingReview(payload);
+        let nextReview = null;
+
+        for (const booking of candidateBookings) {
+          const payload = {
+            bookingNo: booking.bookingNo,
+            lodgingId: lodging.id,
+            score: reviewDraft.score,
+            body,
+            imageFileNames: reviewDraft.images.map((image) => image.fileName),
+          };
+
+          try {
+            nextReview = await createLodgingReview(payload);
+            break;
+          } catch (error) {
+            const message = String(error?.message ?? "");
+            if (isDuplicateReviewErrorMessage(message)) {
+              continue;
+            }
+            throw error;
+          }
+        }
+
+        if (!nextReview) {
+          if (myExistingReview) {
+            setReviewDraft(buildReviewDraftFromReview(myExistingReview));
+            setReviewNotice("이미 작성한 후기를 불러왔습니다. 수정 또는 삭제해 주세요.");
+            return;
+          }
+          setReviewNotice("이미 작성한 예약 후기가 있어 새 후기를 등록할 수 없습니다.");
+          return;
+        }
+
         setReviews((current) => [nextReview, ...current]);
         setReviewNotice("리뷰가 등록되었습니다.");
       }
 
-      setReviewDraft({ reviewId: null, bookingNo: null, score: 5, body: "", images: [] });
+      setReviewDraft((current) => {
+        revokeReviewPreviewUrls(current.images);
+        return { reviewId: null, bookingNo: null, score: 5, body: "", images: [] };
+      });
     } catch (error) {
       console.error("Failed to save lodging review.", error);
       const message = String(error?.message ?? "");
-      if (message.includes("이미 해당 숙소에 대한 리뷰를 작성")) {
+      const isDuplicateReviewError = isDuplicateReviewErrorMessage(message);
+
+      if (isDuplicateReviewError && myExistingReview) {
+        setReviewDraft(buildReviewDraftFromReview(myExistingReview));
+        setReviewNotice("이미 작성한 후기를 불러왔습니다. 수정 또는 삭제해 주세요.");
+      } else if (isDuplicateReviewError) {
         setReviewNotice("이미 작성한 후기입니다. 내 후기에서 수정하거나 관리자 숨김 여부를 확인해 주세요.");
       } else {
         setReviewNotice(reviewDraft.reviewId ? "리뷰 수정에 실패했습니다." : "리뷰 등록에 실패했습니다.");
@@ -453,9 +604,13 @@ export default function LodgingDetailPage() {
       .then((images) => {
         setReviewDraft((current) => {
           const nextImages = [...current.images];
-          images.forEach((image) => {
+          images.forEach((image, index) => {
             if (!nextImages.some((currentImage) => currentImage.fileName === image.fileName)) {
-              nextImages.push(image);
+              nextImages.push({
+                ...image,
+                previewUrl: window.URL.createObjectURL(files[index]),
+                isLocalPreview: true,
+              });
             }
           });
           return { ...current, images: nextImages };
@@ -472,16 +627,24 @@ export default function LodgingDetailPage() {
       });
   };
 
+  const handleReviewImageRemove = (fileName) => {
+    setReviewDraft((current) => {
+      const target = current.images.find((image) => image.fileName === fileName);
+      if (target?.isLocalPreview) {
+        revokeReviewPreviewUrls([target]);
+      }
+      return {
+        ...current,
+        images: current.images.filter((image) => image.fileName !== fileName),
+      };
+    });
+    setReviewNotice("사진을 첨부 목록에서 제외했습니다.");
+  };
+
   const handleReviewEdit = (review) => {
-    setReviewDraft({
-      reviewId: review.id,
-      bookingNo: review.bookingNo,
-      score: Number(review.score),
-      body: review.body,
-      images: (review.imageFileNames ?? []).map((fileName, index) => ({
-        fileName,
-        previewUrl: review.imageUrls?.[index] ?? fileName,
-      })),
+    setReviewDraft((current) => {
+      revokeReviewPreviewUrls(current.images);
+      return buildReviewDraftFromReview(review);
     });
     reviewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     setReviewNotice("리뷰 수정 중입니다.");
@@ -492,7 +655,10 @@ export default function LodgingDetailPage() {
       await deleteLodgingReview(review.id);
       setReviews((current) => current.filter((item) => item.id !== review.id));
       if (reviewDraft.reviewId === review.id) {
-        setReviewDraft({ reviewId: null, bookingNo: null, score: 5, body: "", images: [] });
+        setReviewDraft((current) => {
+          revokeReviewPreviewUrls(current.images);
+          return { reviewId: null, bookingNo: null, score: 5, body: "", images: [] };
+        });
       }
       setReviewNotice("리뷰를 삭제했습니다.");
     } catch (error) {
@@ -500,6 +666,27 @@ export default function LodgingDetailPage() {
       setReviewNotice("리뷰 삭제에 실패했습니다.");
     }
   };
+
+  const resolvedReviewDraft = useMemo(
+    () => ({
+      ...reviewDraft,
+      images: reviewDraft.images.map((image) => ({
+        ...image,
+        previewUrl: image.isLocalPreview ? image.previewUrl : reviewImagePreviewMap[image.fileName] ?? "",
+      })),
+    }),
+    [reviewDraft, reviewImagePreviewMap],
+  );
+  const resolvedReviews = useMemo(
+    () =>
+      reviews.map((review) => ({
+        ...review,
+        imageUrls: (review.imageFileNames ?? [])
+          .map((fileName) => reviewImagePreviewMap[fileName] ?? null)
+          .filter(Boolean),
+      })),
+    [reviewImagePreviewMap, reviews],
+  );
 
   const handleInquirySubmit = async (event) => {
     event.preventDefault();
@@ -746,11 +933,12 @@ export default function LodgingDetailPage() {
               canWriteReview={canWriteReview}
               lodging={lodging}
               reviewAverage={reviewAverage}
-              reviewDraft={reviewDraft}
-              reviews={reviews}
+              reviewDraft={resolvedReviewDraft}
+              reviews={resolvedReviews}
               onChangeDraft={(patch) => setReviewDraft((current) => ({ ...current, ...patch }))}
               onSubmit={handleReviewSubmit}
               onImageChange={handleReviewImages}
+              onRemoveImage={handleReviewImageRemove}
               onEdit={handleReviewEdit}
               onDelete={handleReviewDelete}
             />

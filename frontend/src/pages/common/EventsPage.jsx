@@ -79,7 +79,7 @@ export default function EventsPage() {
               <div className="events-detail-divider" />
               <small>{selectedEvent.detailCopy}</small>
               <Link className="events-detail-inline-link" to={selectedEvent.href ?? "/lodgings?theme=deal"}>
-                {selectedEvent.entityType === "COUPON" ? "혜택 적용 숙소 보기" : "이벤트 대상 보기"}
+                {selectedEvent.entityType === "COUPON" ? "혜택 적용 숙소 보기" : `${selectedEvent.targetLabel ?? "이벤트 대상"} 보기`}
               </Link>
             </article>
 
@@ -102,21 +102,21 @@ export default function EventsPage() {
                   <span>
                     {selectedEvent.entityType === "COUPON"
                       ? "로그인 후 쿠폰함과 특가 숙소 탐색으로 바로 이어집니다."
-                      : "프로모션 상세 확인 후 바로 예약 탐색으로 이어집니다."}
+                      : `${selectedEvent.targetLabel ?? "대상 리스트"}로 바로 이동해 예약 탐색으로 이어집니다.`}
                   </span>
                 </div>
               </div>
 
               <div className="events-detail-coupon-preview">
                 <span className="events-detail-side-label">{selectedEvent.entityType === "COUPON" ? "Coupon Flow" : "Related View"}</span>
-                <strong>{selectedEvent.entityType === "COUPON" ? "쿠폰함 / 적용 숙소" : "특가 숙소 보기"}</strong>
+                <strong>{selectedEvent.entityType === "COUPON" ? "쿠폰함 / 적용 숙소" : `${selectedEvent.targetLabel ?? "특가 숙소"} 보기`}</strong>
                 <p>
                   {selectedEvent.entityType === "COUPON"
                     ? "쿠폰 프로모션은 쿠폰함과 적용 대상 숙소 리스트를 바로 확인할 수 있게 연결합니다."
-                    : "프로모션 확인 후 실제 반영 상태는 특가 리스트와 숙소 상세에서 이어서 봅니다."}
+                    : "프로모션 확인 후 실제 반영 상태는 선택한 지역/테마 리스트에서 이어서 봅니다."}
                 </p>
                 <Link className="coupon-action-button" to={selectedEvent.href ?? "/lodgings?theme=deal"}>
-                  {selectedEvent.entityType === "COUPON" ? "적용 숙소 보기" : "대상 페이지 이동"}
+                  {selectedEvent.entityType === "COUPON" ? "적용 숙소 보기" : `${selectedEvent.targetLabel ?? "대상 페이지"} 이동`}
                 </Link>
               </div>
             </aside>

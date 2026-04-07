@@ -1666,6 +1666,10 @@
   flex-wrap: wrap;
 }
 
+.detail-review-upload-thumb-wrap {
+  position: relative;
+}
+
 .detail-review-upload-thumb {
   width: 74px;
   aspect-ratio: 1;
@@ -1673,6 +1677,22 @@
   background-size: cover;
   background-position: center;
   border: 1px solid rgba(29, 38, 31, 0.08);
+}
+
+.detail-review-upload-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(23, 35, 29, 0.82);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .detail-review-form-foot {

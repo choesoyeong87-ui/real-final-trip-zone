@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DataTable from "../../components/common/DataTable";
+import { quickThemes } from "../../data/homeData";
 import { toUserFacingErrorMessage } from "../../lib/appClient";
 import {
   createAdminCoupon,
@@ -31,6 +32,14 @@ function isHiddenStatus(status) {
   return status === "HIDDEN" || status === "INACTIVE" || status === "DELETE";
 }
 
+const EVENT_TARGET_OPTIONS = [
+  { label: "전체 특가", value: "theme=deal" },
+  ...quickThemes.map((item) => ({
+    label: item.label,
+    value: String(item.to).replace("/lodgings?", ""),
+  })),
+];
+
 export default function AdminEventsPage() {
   const [rows, setRows] = useState([]);
   const [section, setSection] = useState("EVENT");
@@ -42,6 +51,7 @@ export default function AdminEventsPage() {
   const [draft, setDraft] = useState({
     title: "",
     content: "",
+    targetValue: "theme=deal",
     startDate: "",
     endDate: "",
     discountType: "AMOUNT",
@@ -65,6 +75,7 @@ export default function AdminEventsPage() {
           setDraft({
             title: nextRows[0].title,
             content: nextRows[0].content ?? "",
+            targetValue: nextRows[0].targetValue ?? "theme=deal",
             startDate: nextRows[0].startDate ? nextRows[0].startDate.slice(0, 16) : "",
             endDate: nextRows[0].endDate ? nextRows[0].endDate.slice(0, 16) : "",
             discountType: nextRows[0].discountType ?? "AMOUNT",
@@ -111,6 +122,7 @@ export default function AdminEventsPage() {
     setDraft({
       title: target.title,
       content: target.content ?? "",
+      targetValue: target.targetValue ?? "theme=deal",
       startDate: target.startDate ? target.startDate.slice(0, 16) : "",
       endDate: target.endDate ? target.endDate.slice(0, 16) : "",
       discountType: target.discountType ?? "AMOUNT",
@@ -128,6 +140,7 @@ export default function AdminEventsPage() {
     setDraft({
       title: "",
       content: "",
+      targetValue: "theme=deal",
       startDate: "",
       endDate: "",
       discountType: "AMOUNT",
@@ -281,7 +294,13 @@ export default function AdminEventsPage() {
             ) : (
               <label className="saas-field">
                 <span>대상</span>
-                <input value={selectedEvent?.target ?? "전체 회원"} readOnly />
+                <select value={draft.targetValue} onChange={(event) => setDraft((current) => ({ ...current, targetValue: event.target.value }))}>
+                  {EVENT_TARGET_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </label>
             )}
             <label className="saas-field">

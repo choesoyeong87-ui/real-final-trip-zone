@@ -99,6 +99,7 @@ export function ReviewSection({
   onChangeDraft,
   onSubmit,
   onImageChange,
+  onRemoveImage,
   onEdit,
   onDelete,
 }) {
@@ -126,14 +127,35 @@ export function ReviewSection({
               사진 첨부
               <input type="file" accept="image/*" multiple onChange={onImageChange} hidden />
             </label>
-            <button type="submit" className="primary-button detail-review-submit">
-              {reviewDraft.reviewId ? "후기 저장" : "후기 등록"}
-            </button>
+            <div className="saas-form-actions">
+              {reviewDraft.reviewId ? (
+                <button
+                  type="button"
+                  className="saas-btn-danger"
+                  onClick={() => onDelete({ id: reviewDraft.reviewId })}
+                >
+                  후기 삭제
+                </button>
+              ) : null}
+              <button type="submit" className="primary-button detail-review-submit">
+                {reviewDraft.reviewId ? "후기 저장" : "후기 등록"}
+              </button>
+            </div>
           </div>
           {reviewDraft.images.length ? (
             <div className="detail-review-upload-preview">
               {reviewDraft.images.map((image) => (
-                <div key={image.fileName} className="detail-review-upload-thumb" style={{ backgroundImage: `url(${image.previewUrl})` }} />
+                <div key={image.fileName} className="detail-review-upload-thumb-wrap">
+                  <div className="detail-review-upload-thumb" style={{ backgroundImage: `url(${image.previewUrl})` }} />
+                  <button
+                    type="button"
+                    className="detail-review-upload-remove"
+                    onClick={() => onRemoveImage(image.fileName)}
+                    aria-label="첨부 이미지 제거"
+                  >
+                    ×
+                  </button>
+                </div>
               ))}
             </div>
           ) : null}

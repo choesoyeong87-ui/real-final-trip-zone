@@ -151,7 +151,7 @@ export default function MyBookingsPage() {
                   <Link className="coupon-action-button booking-action-button" to={`/my/bookings/${item.bookingId}`}>
                     예약 상세
                   </Link>
-                  {tab === "completed" ? (
+                  {item.status === "COMPLETED" ? (
                     <Link className="text-link" to={`/lodgings/${item.lodgingId}#reviews`}>
                       후기 작성
                     </Link>

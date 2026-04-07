@@ -21,7 +21,7 @@ import {
 } from "../../services/bookingService";
 import { toUserFacingErrorMessage } from "../../lib/appClient";
 import { getLodgingDetailById } from "../../services/lodgingService";
-import { fetchMyCoupons, getMyMileage } from "../../services/mypageService";
+import { fetchMyCoupons, getMyMileage, invalidateMyPageCaches } from "../../services/mypageService";
 
 const DEFAULT_COUPON_OPTION = {
   label: "쿠폰 미사용",
@@ -131,6 +131,11 @@ export default function BookingPage() {
     if (form.mileageToUse <= maxMileage) return;
     setForm((current) => ({ ...current, mileageToUse: maxMileage }));
   }, [form, mileageBalance]);
+
+  useEffect(() => {
+    if (!form || Number(form.mileageToUse ?? 0) === 0) return;
+    setForm((current) => ({ ...current, mileageToUse: 0 }));
+  }, [form]);
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -249,6 +254,7 @@ export default function BookingPage() {
         pgProvider: selectedPayment.pg,
       });
 
+      invalidateMyPageCaches();
       navigate(`/my/bookings/${bookingResponse.bookingId}`);
     } catch (error) {
       const message = error?.message || "";

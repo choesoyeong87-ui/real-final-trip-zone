@@ -1,4 +1,5 @@
 import { readAuthSession } from "../features/auth/authSession";
+import { quickThemes } from "../data/homeData";
 import { del, get, patch, post, put } from "../lib/appClient";
 import { invalidateLodgingsCache } from "./lodgingService";
 import { getSellerInquiryRooms } from "./sellerInquiryService";
@@ -91,8 +92,40 @@ function mapHostProfileDto(dto) {
   };
 }
 
+const EVENT_TARGET_PREFIX = "[[target:";
+const DEFAULT_EVENT_TARGET = "theme=deal";
+const eventTargetLabelByQuery = new Map([
+  [DEFAULT_EVENT_TARGET, "전체 특가"],
+  ...quickThemes.map((item) => [String(item.to).replace("/lodgings?", ""), item.label]),
+]);
+
+function parseEventContent(rawContent = "") {
+  const normalized = typeof rawContent === "string" ? rawContent : "";
+  const markerPattern = /^\[\[target:(.+?)\]\]\r?\n?/;
+  const match = normalized.match(markerPattern);
+  const targetValue = match?.[1]?.trim() || DEFAULT_EVENT_TARGET;
+  const content = match ? normalized.replace(markerPattern, "") : normalized;
+
+  return {
+    rawContent: normalized,
+    content,
+    targetValue,
+  };
+}
+
+function encodeEventContent(content = "", targetValue = DEFAULT_EVENT_TARGET) {
+  const query = targetValue?.trim() || DEFAULT_EVENT_TARGET;
+  const body = typeof content === "string" ? content : "";
+  return `${EVENT_TARGET_PREFIX}${query}]]\n${body}`;
+}
+
+function getEventTargetLabel(targetValue) {
+  return eventTargetLabelByQuery.get(targetValue?.trim() || DEFAULT_EVENT_TARGET) ?? "이벤트 대상 숙소";
+}
+
 function mapEventDto(dto) {
   const status = dto.status ?? "DRAFT";
+  const { rawContent, content, targetValue } = parseEventContent(dto.content);
 
   return {
     id: `event-${dto.eventNo}`,
@@ -104,9 +137,11 @@ function mapEventDto(dto) {
       status === "ONGOING" ? "노출중" :
       status === "HIDDEN" ? "숨김" :
       status === "ENDED" ? "종료" : "초안",
-    target: dto.couponNames?.length ? dto.couponNames.join(", ") : "전체 회원",
+    target: getEventTargetLabel(targetValue),
+    targetValue,
     period: formatDateRange(dto.startDate, dto.endDate),
-    content: dto.content ?? "",
+    content,
+    rawContent,
     startDate: dto.startDate ?? "",
     endDate: dto.endDate ?? "",
     thumbnailUrl: dto.thumbnailUrl ?? "",
@@ -171,6 +206,7 @@ function mapReservationDto(dto) {
   const guestName = dto.userName ?? dto.guestName ?? (dto.userNo ? `회원 ${dto.userNo}` : "-");
   const lodgingName = dto.lodgingName ?? dto.accommodationName ?? "숙소 확인";
   const roomName = dto.roomName ?? dto.productName ?? "객실 확인";
+  const requestMessage = dto.requestMessage ?? "";
 
   return {
     id: bookingNo,
@@ -181,6 +217,7 @@ function mapReservationDto(dto) {
     stay: `${formatDateLabel(dto.checkInDate)} - ${formatDateLabel(dto.checkOutDate)}`,
     status: dto.status ?? "PENDING",
     amount: formatMoney(dto.totalPrice),
+    requestMessage,
     detail: `${lodgingName} · ${roomName}`,
   };
 }
@@ -379,7 +416,7 @@ export async function createAdminEvent(draft, imageFile) {
   const formData = new FormData();
   formData.append("adminUser", String(session?.userNo ?? 1));
   formData.append("title", draft.title);
-  formData.append("content", draft.content ?? "");
+  formData.append("content", encodeEventContent(draft.content ?? "", draft.targetValue));
   formData.append("startDate", draft.startDate);
   formData.append("endDate", draft.endDate);
   formData.append("status", draft.status ?? "DRAFT");
@@ -433,7 +470,7 @@ export async function updateAdminEventStatus(currentEvent, nextStatus) {
 
   const formData = new FormData();
   formData.append("title", currentEvent.title);
-  formData.append("content", currentEvent.content ?? "");
+  formData.append("content", currentEvent.rawContent ?? encodeEventContent(currentEvent.content ?? "", currentEvent.targetValue));
   formData.append("startDate", currentEvent.startDate);
   formData.append("endDate", currentEvent.endDate);
   formData.append("status", nextStatus);
@@ -464,7 +501,7 @@ export async function saveAdminEvent(eventId, draft, currentEvent, imageFile = n
 
   const formData = new FormData();
   formData.append("title", draft.title);
-  formData.append("content", draft.content ?? currentEvent.content ?? "");
+  formData.append("content", encodeEventContent(draft.content ?? currentEvent.content ?? "", draft.targetValue ?? currentEvent.targetValue));
   formData.append("startDate", draft.startDate);
   formData.append("endDate", draft.endDate);
   formData.append("status", currentEvent.status ?? "DRAFT");
@@ -563,13 +600,51 @@ export function getAdminAuditLogs() {
 }
 
 export async function getSellerLodgings() {
-  const lodgings = await get("/api/seller/lodgings");
-  return lodgings.map(mapSellerLodgingDto);
+  try {
+    const lodgings = await get("/api/seller/lodgings");
+    return lodgings.map(mapSellerLodgingDto);
+  } catch (error) {
+    if (!error.message?.includes("HTTP 404")) {
+      throw error;
+    }
+
+    const host = await requireCurrentHostProfile();
+    const lodgings = await get("/api/lodgings/list");
+    const hostLodgings = lodgings.filter((item) => Number(item.hostNo) === Number(host.hostNo));
+    const detailedLodgings = await Promise.all(
+      hostLodgings.map(async (item) => {
+        try {
+          return await get(`/api/lodgings/${item.lodgingNo}/detail`);
+        } catch {
+          return item;
+        }
+      }),
+    );
+    return detailedLodgings.map(mapSellerLodgingDto);
+  }
 }
 
 export async function getSellerDashboardLodgings() {
-  const lodgings = await get("/api/seller/lodgings/summary");
-  return lodgings.map(mapSellerLodgingSummaryDto);
+  try {
+    const lodgings = await get("/api/seller/lodgings/summary");
+    return lodgings.map(mapSellerLodgingSummaryDto);
+  } catch (error) {
+    if (!error.message?.includes("HTTP 404")) {
+      throw error;
+    }
+
+    const lodgings = await getSellerLodgings();
+    return lodgings.map((item) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      region: item.region,
+      status: item.status,
+      roomCount: item.roomCount,
+      occupancy: item.occupancy,
+      inquiryCount: item.inquiryCount,
+    }));
+  }
 }
 
 export async function getSellerSalesSummary() {

@@ -17,6 +17,9 @@ import {
 import { clamp, formatDateSummary, parseISO, toISO } from "../../features/lodging-list/lodgingListUtils";
 import { getCachedLodgingsSnapshot, getLodgings, getSearchSuggestionItems, subscribeLodgingsInvalidated } from "../../services/lodgingService";
 
+const PAGE_SIZE = 24;
+const PAGE_GROUP_SIZE = 10;
+
 export default function LodgingListPage() {
   const cachedLodgings = getCachedLodgingsSnapshot();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -50,6 +53,7 @@ export default function LodgingListPage() {
   const minPrice = clamp(filters.minPrice, 0, 500000);
   const maxPrice = clamp(filters.maxPrice, minPrice, 500000);
   const availableOnly = filters.availableOnly;
+  const filterPageResetKey = searchParams.toString();
 
   const [searchForm, setSearchForm] = useState({
     keyword,
@@ -116,9 +120,20 @@ export default function LodgingListPage() {
   const filteredLodgings = useMemo(() => {
     return filterLodgings(lodgings, { ...filters, minPrice, maxPrice });
   }, [filters, maxPrice, minPrice]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filteredLodgings.length / PAGE_SIZE));
+  const currentGroup = Math.floor((currentPage - 1) / PAGE_GROUP_SIZE);
+  const pageNumbers = useMemo(() => {
+    const startPage = currentGroup * PAGE_GROUP_SIZE + 1;
+    const endPage = Math.min(startPage + PAGE_GROUP_SIZE - 1, totalPages);
+    return Array.from({ length: endPage - startPage + 1 }, (_, index) => startPage + index);
+  }, [currentGroup, totalPages]);
+  const pagedLodgings = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return filteredLodgings.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [currentPage, filteredLodgings]);
 
   const [activeLodgingId, setActiveLodgingId] = useState(null);
-  const selectedLodging = filteredLodgings.find((item) => item.id === activeLodgingId) ?? null;
 
   useEffect(() => {
     setRecentSearches(readRecentSearches());
@@ -146,24 +161,34 @@ export default function LodgingListPage() {
   }, []);
 
   useEffect(() => {
-    if (!filteredLodgings.length) {
+    setCurrentPage(1);
+  }, [filterPageResetKey, lodgings.length]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    if (!pagedLodgings.length) {
       setActiveLodgingId(null);
       return;
     }
 
     setActiveLodgingId((current) => {
       if (!current) return null;
-      if (filteredLodgings.some((lodging) => lodging.id === current)) {
+      if (pagedLodgings.some((lodging) => lodging.id === current)) {
         return current;
       }
       return null;
     });
-  }, [filteredLodgings]);
+  }, [pagedLodgings]);
 
   const focusLodging = (lodgingId) => {
     setActiveLodgingId(lodgingId);
     if (!mapInstance) return;
-    const target = filteredLodgings.find((lodging) => lodging.id === lodgingId);
+    const target = pagedLodgings.find((lodging) => lodging.id === lodgingId);
     if (!target) return;
     const latitude = Number(target.latitude);
     const longitude = Number(target.longitude);
@@ -179,7 +204,7 @@ export default function LodgingListPage() {
 
   useEffect(() => {
     if (!mapInstance || !activeLodgingId) return;
-    const target = filteredLodgings.find((lodging) => lodging.id === activeLodgingId);
+    const target = pagedLodgings.find((lodging) => lodging.id === activeLodgingId);
     if (!target) return;
     const latitude = Number(target.latitude);
     const longitude = Number(target.longitude);
@@ -191,7 +216,7 @@ export default function LodgingListPage() {
       duration: 0.55,
       easeLinearity: 0.25,
     });
-  }, [activeLodgingId, filteredLodgings, mapInstance]);
+  }, [activeLodgingId, mapInstance, pagedLodgings]);
 
   const updateParams = (nextValues) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -427,17 +452,53 @@ export default function LodgingListPage() {
               </div>
             </section>
           ) : (
-            <LodgingResultsLayout
-              filteredLodgings={filteredLodgings}
-              activeLodgingId={activeLodgingId}
-              focusLodging={focusLodging}
-              handleListPointer={handleListPointer}
-            />
+            <>
+              <LodgingResultsLayout
+                filteredLodgings={pagedLodgings}
+                activeLodgingId={activeLodgingId}
+                focusLodging={focusLodging}
+                handleListPointer={handleListPointer}
+              />
+              {totalPages > 1 ? (
+                <div className="list-pagination">
+                  <button
+                    type="button"
+                    className="list-pagination-arrow"
+                    onClick={() => setCurrentPage(Math.max(1, currentGroup * PAGE_GROUP_SIZE))}
+                    disabled={currentGroup === 0}
+                    aria-label="이전 페이지 그룹"
+                  >
+                    ←
+                  </button>
+                  <div className="list-pagination-pages">
+                    {pageNumbers.map((pageNumber) => (
+                      <button
+                        key={pageNumber}
+                        type="button"
+                        className={`list-pagination-page${pageNumber === currentPage ? " is-active" : ""}`}
+                        onClick={() => setCurrentPage(pageNumber)}
+                      >
+                        {pageNumber}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="list-pagination-arrow"
+                    onClick={() => setCurrentPage(Math.min(totalPages, (currentGroup + 1) * PAGE_GROUP_SIZE + 1))}
+                    disabled={pageNumbers[pageNumbers.length - 1] >= totalPages}
+                    aria-label="다음 페이지 그룹"
+                  >
+                    →
+                  </button>
+                </div>
+              ) : null}
+            </>
           )}
         </div>
 
         <LodgingMapPanel
-          filteredLodgings={filteredLodgings}
+          filteredLodgings={pagedLodgings}
           activeLodgingId={activeLodgingId}
           focusLodging={focusLodging}
           mapInstance={mapInstance}

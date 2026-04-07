@@ -15,6 +15,18 @@ const columns = [
 
 const PAGE_SIZE = 10;
 const PAGE_GROUP_SIZE = 10;
+const EMPTY_RESERVATION_ROW = {
+  no: "",
+  guest: "",
+  lodging: "",
+  stay: "",
+  status: "",
+  amount: "",
+  requestMessage: "",
+  detail: "",
+  isPlaceholder: true,
+  placeholderKey: "",
+};
 
 export default function SellerReservationsPage() {
   const [rows, setRows] = useState([]);
@@ -22,7 +34,6 @@ export default function SellerReservationsPage() {
   const [notice, setNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const selected = rows.find((row) => row.no === selectedNo) ?? rows[0];
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const currentGroup = Math.floor((currentPage - 1) / PAGE_GROUP_SIZE);
   const pageNumbers = useMemo(() => {
@@ -34,6 +45,20 @@ export default function SellerReservationsPage() {
     const startIndex = (currentPage - 1) * PAGE_SIZE;
     return rows.slice(startIndex, startIndex + PAGE_SIZE);
   }, [currentPage, rows]);
+  const displayRows = useMemo(
+    () => {
+      if (!rows.length) return [];
+      return [
+        ...pagedRows,
+        ...Array.from({ length: Math.max(0, PAGE_SIZE - pagedRows.length) }, (_, index) => ({
+          ...EMPTY_RESERVATION_ROW,
+          placeholderKey: `placeholder-${currentPage}-${index}`,
+        })),
+      ];
+    },
+    [currentPage, pagedRows, rows.length],
+  );
+  const selected = pagedRows.find((row) => row.no === selectedNo) ?? pagedRows[0] ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -76,14 +101,15 @@ export default function SellerReservationsPage() {
   }, [currentPage, rows.length, totalPages]);
 
   useEffect(() => {
-    if (!selectedNo) return;
-    const selectedIndex = rows.findIndex((row) => row.no === selectedNo);
-    if (selectedIndex < 0) return;
-    const nextPage = Math.floor(selectedIndex / PAGE_SIZE) + 1;
-    if (nextPage !== currentPage) {
-      setCurrentPage(nextPage);
+    if (!pagedRows.length) {
+      setSelectedNo(null);
+      return;
     }
-  }, [currentPage, rows, selectedNo]);
+
+    if (!pagedRows.some((row) => row.no === selectedNo)) {
+      setSelectedNo(pagedRows[0].no);
+    }
+  }, [pagedRows, selectedNo]);
 
   const updateStatus = async (nextStatus) => {
     if (!selected) return;
@@ -104,10 +130,13 @@ export default function SellerReservationsPage() {
           {isLoading ? <div className="my-empty-inline">예약 목록을 불러오는 중입니다.</div> : null}
           <DataTable
             columns={columns}
-            rows={pagedRows}
-            getRowKey={(row) => row.no}
+            rows={displayRows}
+            getRowKey={(row) => row.no || row.placeholderKey}
             selectedKey={selectedNo}
-            onRowClick={(row) => setSelectedNo(row.no)}
+            onRowClick={(row) => {
+              if (row.isPlaceholder) return;
+              setSelectedNo(row.no);
+            }}
           />
           <div className="seller-pagination">
             <button
@@ -176,6 +205,10 @@ export default function SellerReservationsPage() {
             <label className="saas-field">
               <span>결제금액</span>
               <input value={selected?.amount ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>요청메시지</span>
+              <textarea rows={3} value={selected?.requestMessage ?? ""} readOnly />
             </label>
             <label className="saas-field">
               <span>상세 정보</span>

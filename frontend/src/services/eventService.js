@@ -1,3 +1,4 @@
+import { quickThemes } from "../data/homeData";
 import { get, getApiBaseUrl } from "../lib/appClient";
 
 const EVENT_PROMO_ACCENTS = ["sunset", "peach", "mint", "dusk"];
@@ -7,6 +8,12 @@ const EVENT_FALLBACK_IMAGES = [
   "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1400&q=80",
   "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1400&q=80",
 ];
+const EVENT_TARGET_PREFIX = "[[target:";
+const DEFAULT_EVENT_TARGET = "theme=deal";
+const eventTargetLabelByQuery = new Map([
+  [DEFAULT_EVENT_TARGET, "전체 특가"],
+  ...quickThemes.map((item) => [String(item.to).replace("/lodgings?", ""), item.label]),
+]);
 
 function formatEventPeriod(startDate, endDate) {
   const start = new Date(startDate);
@@ -25,21 +32,50 @@ function buildEventImageUrl(fileName) {
   return `${getApiBaseUrl()}/api/event/view/${encodeURIComponent(fileName)}`;
 }
 
+function parseEventContent(rawContent = "") {
+  const normalized = typeof rawContent === "string" ? rawContent : "";
+  const markerPattern = /^\[\[target:(.+?)\]\]\r?\n?/;
+  const match = normalized.match(markerPattern);
+  const targetValue = match?.[1]?.trim() || DEFAULT_EVENT_TARGET;
+  const content = match ? normalized.replace(markerPattern, "") : normalized;
+
+  return {
+    content,
+    targetValue,
+  };
+}
+
+function buildEventHref(targetValue) {
+  const query = targetValue?.trim() || DEFAULT_EVENT_TARGET;
+  return `/lodgings?${query}`;
+}
+
+function getEventTargetLabel(targetValue) {
+  return eventTargetLabelByQuery.get(targetValue?.trim() || DEFAULT_EVENT_TARGET) ?? "이벤트 대상 숙소";
+}
+
 function mapEventDto(dto, index = 0) {
+  const { content, targetValue } = parseEventContent(dto.content);
+  const href = buildEventHref(targetValue);
+  const targetLabel = getEventTargetLabel(targetValue);
+
   return {
     id: `event-${dto.eventNo}`,
     entityType: "EVENT",
     eventNo: dto.eventNo,
     title: dto.title,
-    subtitle: dto.content,
+    subtitle: content,
     action: "이벤트 보기",
     heroTitle: dto.title,
-    heroSubtitle: dto.content,
+    heroSubtitle: content,
     heroEyebrow: "Live Event",
     heroMeta: formatEventPeriod(dto.startDate, dto.endDate),
     detailTitle: dto.title,
-    detailCopy: dto.content,
-    href: "/lodgings?theme=deal",
+    detailCopy: content,
+    href,
+    targetLabel,
+    targetValue,
+    ctaLabel: `${targetLabel} 보기`,
     couponNames: dto.couponNames ?? [],
     status: dto.status,
     accent: EVENT_PROMO_ACCENTS[index % EVENT_PROMO_ACCENTS.length],

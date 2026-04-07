@@ -183,7 +183,7 @@ export function BookingFormSection({
               step="1000"
               className="booking-number-input"
               value={form.mileageToUse}
-              disabled={!authSession || mileageBalance <= 0}
+              disabled
               placeholder="0"
               onChange={(event) => {
                 const nextValue = Number(event.target.value);
@@ -196,7 +196,7 @@ export function BookingFormSection({
             <button
               type="button"
               className="secondary-button booking-inline-button"
-              disabled={!authSession || mileageBalance <= 0}
+              disabled
               onClick={() =>
                 setForm((current) => ({
                   ...current,
@@ -207,11 +207,7 @@ export function BookingFormSection({
               전액 사용
             </button>
           </div>
-          <small>
-            {authSession
-              ? `보유 ${Number(mileageBalance ?? 0).toLocaleString()}P`
-              : "로그인 후 보유 마일리지를 사용할 수 있습니다"}
-          </small>
+          <small>마일리지 사용은 현재 준비 중입니다.</small>
         </label>
 
         <label className="booking-field booking-field-full">
@@ -345,6 +341,7 @@ export function BookingSummarySection({
           </div>
         ))}
       </div>
+      {submitError ? <div className="my-empty-inline">{submitError}</div> : null}
       <button
         type="button"
         className={`primary-button booking-card-button${canSubmit ? "" : " is-disabled"}`}
